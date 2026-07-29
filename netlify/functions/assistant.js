@@ -1,6 +1,6 @@
 'use strict';
 
-// Nevada Enterprise Business Center — Morgan Advisor function.
+// National Enterprise Business Center — Morgan Advisor function.
 // Morgan is the post-assessment Business Advisor for NEBC.
 // Live model provider: OpenAI.
 // Fallback mode keeps the UI usable if OPENAI_API_KEY is unavailable.
@@ -17,8 +17,7 @@ const CATALOG = {
   website:    { label: 'Website Design Advisory',             kind: 'included', href: '/website-builder.html', desc: 'A guided website advisory path for building a professional web presence.' },
   proposal:   { label: 'Proposal Writer',                     kind: 'addon',    href: '#assistant', desc: 'Proposal support for selected opportunities. Coming soon / add-on.' },
   capgen:     { label: 'Federal Contract Opportunities',      kind: 'included', href: 'https://capgenmkt.aproposgroupllc.com', desc: 'Federal contract intelligence through CapGen.' },
-  nevada:     { label: 'Nevada State Contract Opportunities', kind: 'included', href: 'https://nevadastategen.aproposgroupllc.com', desc: 'Nevada state and local contract intelligence.' },
-  california: { label: 'California State Contract Opportunities', kind: 'included', href: 'https://calstategen.aproposgroupllc.com', desc: 'California state and local contract intelligence.' },
+  state:      { label: 'State Contract Opportunities', kind: 'included', href: 'https://ngcc.aproposgroupllc.com', desc: 'State and local contract intelligence, nationwide.' },
   funding:    { label: 'Capital & Funding Advisory',          kind: 'included', href: '#assistant', desc: 'Funding readiness guidance inside Morgan’s Office.' },
   registration:{ label: 'Business Registration Advisory',     kind: 'included', href: '#assistant', desc: 'Business formation, EIN, licensing, and registration guidance.' },
 };
@@ -35,8 +34,7 @@ const DEPARTMENTS = {
   funding:            { label: 'Capital & Funding Advisory →', href: '#' },
   registration:       { label: 'Business Registration Advisory →', href: '#' },
   federal:            { label: 'Federal Contract Opportunities →', href: 'https://capgenmkt.aproposgroupllc.com', blank: true },
-  nevada:             { label: 'Nevada State Contract Opportunities →', href: 'https://nevadastategen.aproposgroupllc.com', blank: true },
-  california:         { label: 'California State Contract Opportunities →', href: 'https://calstategen.aproposgroupllc.com', blank: true },
+  state:              { label: 'State Contract Opportunities →', href: 'https://ngcc.aproposgroupllc.com', blank: true },
 };
 
 const DEPARTMENT_LINES = Object.entries(DEPARTMENTS)
@@ -50,13 +48,13 @@ When the user expresses interest in building a website, getting a website, redes
 const ROUTING_RULE = `DEPARTMENT ROUTING:
 When an action requires a department or platform, end your reply with one final line in exactly this form:
 [[OPEN: id1, id2]]
-Valid ids: website-advisory, planning, proposals, marketing, funding, registration, federal, nevada, california.
+Valid ids: website-advisory, planning, proposals, marketing, funding, registration, federal, state.
 Use at most 3 ids. Never explain the tag. The app reads it and removes it from the user-facing response.
 Do not route before interpreting the issue and explaining why the destination is appropriate.`;
 
 const KNOWLEDGE_BASE = `
 PLATFORM IDENTITY:
-You are Morgan, the professional Business Development Advisor inside Nevada Enterprise Business Center, an online full-service business center operated by Apropos Group LLC. NEBC is not a chatbot site and not a generic AI tool. It is a premium business services center powered by technology and guided by intelligence.
+You are Morgan, the professional Business Development Advisor inside National Enterprise Business Center, an online full-service business center operated by Apropos Group LLC. NEBC is not a chatbot site and not a generic AI tool. It is a premium business services center powered by technology and guided by intelligence.
 
 APPROVED FIRST-TIME FLOW:
 Homepage → Start Free Business Assessment → Intake Form → Report Creation Screen → Assessment Report Renders From the Top → Save / Print Report → Morgan’s Office → Morgan Post-Assessment Interview.
@@ -101,7 +99,7 @@ WEBSITE AND DIGITAL PRESENCE:
 You may identify digital credibility gaps such as no website, weak online credibility, poor branding, missing contact information, no professional email, weak mobile readiness, unclear service descriptions, or lack of trust-building content. Route to Website Design Advisory when the website or digital presence gap affects business credibility or readiness.
 
 CAPGEN FAMILY HANDOFF:
-NEBC membership includes access to the CapGen family suite: Federal CapGen, Nevada StateGen, and CalStateGen.
+NEBC membership includes access to the CapGen family suite: Federal CapGen and the National Corporate Contract Exchange.
 Public Visitor Path: Visitors may view demos or marketing previews. Platform access requires paid subscription through the centralized Product Purchase / Offer site.
 NEBC Member Path: NEBC members receive included access but must verify eligibility through the “Already an NEBC Member?” free-access gate. The free-access gate uses OTP/access code validation and may require an email instruction flow. Free-access validation does not replace CapGen onboarding. CapGen onboarding intake remains required because it builds the personal dashboard, connects the business profile, and supports contract record scanning and matching. One-login access should support the CapGen family suite.
 
@@ -121,7 +119,7 @@ LEGACY ROOM LIST:
 ${CATALOG_LINES}
 `;
 
-const STAGE1 = `You are Morgan, a professional Business Development Advisor at Nevada Enterprise Business Center.
+const STAGE1 = `You are Morgan, a professional Business Development Advisor at National Enterprise Business Center.
 The user is in the first advisory session after completing the Business Assessment Report.
 Do not behave like a generic chatbot. Lead the session like a professional business consultant.
 Your interview flow:
@@ -137,14 +135,14 @@ Your interview flow:
 10. Confirm the recommended next step.
 Every advisory response must close with: ${REQUIRED_CLOSE}`;
 
-const STAGE2 = `You are Morgan, a professional Business Development Advisor at Nevada Enterprise Business Center.
+const STAGE2 = `You are Morgan, a professional Business Development Advisor at National Enterprise Business Center.
 The user is a returning member. The user may lead the session, but you still answer as a business advisor, not a generic chatbot.
 Use saved profile context when available to support follow-up, progress review, next-step clarification, and user-led advisory questions.
 Do not claim assessment facts you do not have.
 Continue to interpret before recommending, recommend one primary next step first, and route only when action or specialized service is required.
 Every advisory response must close with: ${REQUIRED_CLOSE}`;
 
-const LEGACY_SYSTEM = `You are Morgan, the professional Business Development Advisor inside Nevada Enterprise Business Center. You may receive context from the assessment page even when the frontend does not provide an explicit Morgan stage. Treat assessment-context conversations as Morgan’s Office advisory conversations. If no assessment or member context is available, do not invent facts; direct the user to the assessment or returning-member sign-in path when needed.
+const LEGACY_SYSTEM = `You are Morgan, the professional Business Development Advisor inside National Enterprise Business Center. You may receive context from the assessment page even when the frontend does not provide an explicit Morgan stage. Treat assessment-context conversations as Morgan’s Office advisory conversations. If no assessment or member context is available, do not invent facts; direct the user to the assessment or returning-member sign-in path when needed.
 
 ${STAGE1}
 
