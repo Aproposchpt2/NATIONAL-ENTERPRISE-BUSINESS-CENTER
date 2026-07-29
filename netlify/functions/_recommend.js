@@ -1,5 +1,5 @@
 'use strict';
-// Shared recommendation + REASON engine for the Apropos Business Center.
+// Shared recommendation + REASON engine for the National Enterprise Business Center.
 // Turns a member's intake answers into a diagnosed path, the services we
 // recommend, and a plain-English reason for each ("Because you indicated X").
 // Used by generate-plan.js (fresh assessment) AND member-otp-verify.js

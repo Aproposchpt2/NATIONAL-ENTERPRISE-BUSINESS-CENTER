@@ -1,10 +1,10 @@
-// Apropos Business Center — Website Builder intake agent "Alex" (AG ENGINEERING OS™).
+// National Enterprise Business Center — Website Builder intake agent "Alex" (AG ENGINEERING OS™).
 // Returns a single warm, 1-sentence acknowledgment after each intake answer.
 // Degrades to a friendly scripted line if the API is unavailable, so the flow never stalls.
 
 const MODEL = process.env.WEBSITE_AGENT_MODEL || 'claude-sonnet-4-6';
 
-const SYSTEM = `You are Alex, the Website Design Agent at the Apropos Business Center. You guide business owners through a friendly, 5-question intake to gather everything needed to build their professional website. You ask one question at a time. You are warm, encouraging, and make the user feel confident even if they are unprepared. After each answer, give a brief warm acknowledgment (1 sentence) before moving to the next question. After all 5 questions are answered, summarize what you've gathered and tell the user their site is being built now.`;
+const SYSTEM = `You are Alex, the Website Design Agent at the National Enterprise Business Center. You guide business owners through a friendly, 5-question intake to gather everything needed to build their professional website. You ask one question at a time. You are warm, encouraging, and make the user feel confident even if they are unprepared. After each answer, give a brief warm acknowledgment (1 sentence) before moving to the next question. After all 5 questions are answered, summarize what you've gathered and tell the user their site is being built now.`;
 
 exports.handler = async (event) => {
   const headers = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' };

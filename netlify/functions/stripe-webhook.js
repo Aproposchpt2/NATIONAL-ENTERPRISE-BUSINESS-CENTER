@@ -1,5 +1,5 @@
 'use strict';
-// Apropos Business Center — subscription webhook. Keeps biz_center_members in sync with Stripe:
+// National Enterprise Business Center — subscription webhook. Keeps biz_center_members in sync with Stripe:
 //   • checkout.session.completed        → link Stripe ids to the member, mark 'active'
 //   • customer.subscription.updated     → map Stripe status → trial / active / cancelled / expired
 //   • customer.subscription.deleted     → mark 'cancelled'

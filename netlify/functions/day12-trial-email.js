@@ -1,4 +1,4 @@
-// Apropos Business Center — Day-12 trial-expiry email.
+// National Enterprise Business Center — Day-12 trial-expiry email.
 // Runs daily: finds members STILL on trial whose trial ends ~2 days out, and emails the
 // "your trial ends in 2 days — continue for $24.99/mo" nudge with the Stripe payment link.
 // The +2-day calendar window matches each member exactly once, so no duplicate sends.
@@ -33,13 +33,13 @@ async function sendNudge(m) {
   const biz = String(m.business_name || 'your business').replace(/</g, '&lt;');
   const subject = 'Your Business Center trial ends in 2 days';
   const html = `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#10241c">
-    <div style="font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#c79a3e;font-weight:700;margin-bottom:10px">Apropos Business Center</div>
+    <div style="font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#c79a3e;font-weight:700;margin-bottom:10px">National Enterprise Business Center</div>
     <h2 style="font-family:Georgia,serif;font-size:20px;margin:0 0 12px">${first}, your free trial ends in 2 days.</h2>
     <p style="font-size:15px;line-height:1.6;color:#3c5249">You've been building <b>${biz}</b> inside the Business Center. To keep your AI Business Advisor, assessment, contract matching, document generator, website tools, and everything else, continue for just <b>$24.99/month</b>.</p>
     <p style="font-size:15px;line-height:1.6;color:#3c5249">No interruption — your dashboard, plan, and progress stay exactly where you left them.</p>
     <a href="${PAY_LINK}" style="display:inline-block;background:#10623f;color:#fff;text-decoration:none;font-weight:800;padding:13px 24px;border-radius:10px;margin:8px 0 14px">Subscribe Now — $24.99/month &rarr;</a>
     <p style="font-size:13px;color:#7a8a82">Or return to your dashboard: <a href="${SITE}" style="color:#10623f">${SITE}</a></p>
-    <p style="font-size:12px;color:#9aa8a0;margin-top:18px">Apropos Business Center &middot; Cancel anytime.</p>
+    <p style="font-size:12px;color:#9aa8a0;margin-top:18px">National Enterprise Business Center &middot; Cancel anytime.</p>
   </div>`;
   try {
     const r = await fetch('https://api.resend.com/emails', {

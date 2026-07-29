@@ -1,4 +1,4 @@
-﻿// Apropos Business Center — shared front-end helpers (loaded on every page).
+﻿// National Enterprise Business Center — shared front-end helpers (loaded on every page).
 // Pure utilities only: no element lookups at load, so it is safe on any page.
 const $ = id => document.getElementById(id);
 

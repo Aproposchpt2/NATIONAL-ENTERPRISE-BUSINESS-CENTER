@@ -1,4 +1,4 @@
-// Apropos Business Center — AG ENGINEERING OS™ onboarding engine
+// National Enterprise Business Center — AG ENGINEERING OS™ onboarding engine
 // Intake -> AI diagnosis -> readiness score -> plan -> dashboard -> Supabase record.
 
 const OPENAI_MODEL = process.env.PLAN_MODEL || 'gpt-4o-mini';
@@ -105,7 +105,7 @@ function serviceTimeline(recommendedServices) {
 }
 
 function buildPlanPrompt(i, diagnosis) {
-  return `You are the AI Business Agent for Apropos Business Center, an online full-service business center. Write a practical business plan for the client and use the intake data to make smart assumptions.
+  return `You are the AI Business Agent for National Enterprise Business Center, an online full-service business center. Write a practical business plan for the client and use the intake data to make smart assumptions.
 
 CLIENT INTAKE
 - Name: ${i.fullName || '(not provided)'}
@@ -127,7 +127,7 @@ ${SECTIONS.map(s => '## ' + s).join('\n')}
 Rules:
 - Plainspoken, specific, and action-oriented.
 - No placeholders unless truly unavoidable.
-- Include concrete first moves that connect to the Apropos Business Center services.
+- Include concrete first moves that connect to the National Enterprise Business Center services.
 - If the user is pursuing federal or state contracts, refer to a capability profile, CapGen, and the State CapGen sites. Do not tell a registered federal contractor they lack a capability statement.
 - End after the Funding Needs section.`;
 }
@@ -157,7 +157,7 @@ function starterPlan(i, diagnosis) {
   const ind = i.industry || 'your industry';
   const loc = i.location || 'your market';
   return `## Executive Summary
-${i.businessName} is positioned as a ${diagnosis.businessStage.toLowerCase()}-path business in ${ind}${loc ? ' serving ' + loc : ''}. The immediate priority is to organize the business foundation, clarify the offer, and use the Apropos Business Center to move from intake into a structured action plan.
+${i.businessName} is positioned as a ${diagnosis.businessStage.toLowerCase()}-path business in ${ind}${loc ? ' serving ' + loc : ''}. The immediate priority is to organize the business foundation, clarify the offer, and use the National Enterprise Business Center to move from intake into a structured action plan.
 
 ## Company Overview
 The business should operate with a clear legal and operational foundation. Missing items identified during intake should be handled first because they affect funding, marketing, and contract readiness.
@@ -200,9 +200,9 @@ async function sendWelcomeEmail(i, diagnosis, readiness, trialEnd) {
   const priHtml = priorities.length
     ? priorities.map((p, idx) => `<tr><td style="padding:6px 0;color:#10623f;font-weight:800;width:26px;vertical-align:top">${idx + 1}.</td><td style="padding:6px 0;color:#3c5249">${esc(p)}</td></tr>`).join('')
     : `<tr><td colspan="2" style="padding:6px 0;color:#3c5249">No major gaps flagged — keep building with your advisor.</td></tr>`;
-  const subject = `Welcome to the Apropos Business Center, ${first}`;
+  const subject = `Welcome to the National Enterprise Business Center, ${first}`;
   const html = `<div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;padding:26px;color:#10241c">
-    <div style="font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#c79a3e;font-weight:700;margin-bottom:12px">Apropos Business Center&trade;</div>
+    <div style="font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#c79a3e;font-weight:700;margin-bottom:12px">National Enterprise Business Center&trade;</div>
     <h1 style="font-family:Georgia,serif;font-size:24px;line-height:1.2;margin:0 0 6px">Welcome, ${first} — your assessment is ready.</h1>
     <p style="font-size:15px;line-height:1.6;color:#3c5249;margin:0 0 18px">We've reviewed <b>${esc(i.businessName)}</b> and built your assessment, plan, and recommended path inside the Business Center.</p>
     <table style="width:100%;border-collapse:collapse;margin:0 0 18px"><tr>
@@ -221,7 +221,7 @@ async function sendWelcomeEmail(i, diagnosis, readiness, trialEnd) {
     <div style="background:#fff8e8;border:1px solid #ead3a0;border-radius:12px;padding:14px 16px;font-size:14px;color:#6f4d05;margin:0 0 20px">&#9203; <b>Your 14-day free access is active</b> and runs through <b>${endStr}</b>. Keep everything you build — cancel anytime.</div>
     <a href="${SITE}/coach.html" style="display:inline-block;background:#10623f;color:#fff;text-decoration:none;font-weight:800;padding:14px 26px;border-radius:10px;margin:0 0 10px">Continue to Morgan's Office &rarr;</a>
     <p style="font-size:13px;color:#7a8a82;margin:6px 0 0">Return to your dashboard anytime: <a href="${SITE}" style="color:#10623f">${SITE}</a></p>
-    <p style="font-size:12px;color:#9aa8a0;margin-top:22px">&copy; 2026 Apropos Group LLC &middot; APROPOS BUSINESS CENTER&trade; &middot; AG ENGINEERING OS&trade;</p>
+    <p style="font-size:12px;color:#9aa8a0;margin-top:22px">&copy; 2026 Apropos Group LLC &middot; NATIONAL ENTERPRISE BUSINESS CENTER&trade; &middot; AG ENGINEERING OS&trade;</p>
   </div>`;
   const r = await fetch('https://api.resend.com/emails', {
     method: 'POST',

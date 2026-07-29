@@ -1,4 +1,4 @@
-// Apropos Business Center — Website Generation (AG ENGINEERING OS™).
+// National Enterprise Business Center — Website Generation (AG ENGINEERING OS™).
 // Receives intake data, generates Fortune-500-grade copy via Claude (claude-sonnet-4-6),
 // populates the approved flagship-template.html placeholders, and stores the build in
 // Supabase storage (bucket: website-builds). Buckets are self-provisioned on first run.
@@ -11,7 +11,7 @@ const MODEL = process.env.WEBSITE_MODEL || 'claude-sonnet-4-6';
 const SUPA  = process.env.SUPABASE_URL;
 const SKEY  = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-const COPY_SYSTEM = `You are a professional website copywriter working for the Apropos Business Center. You will receive intake data about a business and generate polished, professional website copy that would impress a Fortune 500 prospect. Every line must be specific to this business — never generic. Generate copy for these sections:
+const COPY_SYSTEM = `You are a professional website copywriter working for the National Enterprise Business Center. You will receive intake data about a business and generate polished, professional website copy that would impress a Fortune 500 prospect. Every line must be specific to this business — never generic. Generate copy for these sections:
 1. Hero headline (powerful, Cinzel-worthy, max 6 words)
 2. Hero subheadline (one compelling sentence, Fraunces italic)
 3. Eyebrow label (business type + city, uppercase, max 5 words)

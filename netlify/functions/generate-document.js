@@ -1,4 +1,4 @@
-// Apropos Business Center — Business Document Generator (real assistance).
+// National Enterprise Business Center — Business Document Generator (real assistance).
 // Generates actual, usable business documents from a few inputs. No smoke and mirrors:
 //   - With ANTHROPIC_API_KEY → a complete, professionally-drafted document via Claude.
 //   - Without it → a structured starter draft from the inputs, so it works today.

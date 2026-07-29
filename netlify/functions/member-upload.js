@@ -1,4 +1,4 @@
-// Apropos Business Center — member file storage broker (AG ENGINEERING OS™).
+// National Enterprise Business Center — member file storage broker (AG ENGINEERING OS™).
 // Issues Supabase signed upload URLs (browser uploads direct → no Netlify body-size limit),
 // lists, and deletes member files. Buckets are self-provisioned:
 //   member-documents  → PRIVATE (business plans, financials, contracts)
