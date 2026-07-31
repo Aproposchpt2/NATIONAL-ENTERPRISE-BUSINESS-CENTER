@@ -73,12 +73,26 @@ if (process.env.GOOGLE_SITE_VERIFICATION) {
   replaceMeta('google-site-verification', process.env.GOOGLE_SITE_VERIFICATION);
 }
 
-if (process.env.GA4_MEASUREMENT_ID && !html.includes('www.googletagmanager.com/gtag/js')) {
-  const id = process.env.GA4_MEASUREMENT_ID.replace(/[^A-Za-z0-9-]/g, '');
-  const analytics = `<script async src="https://www.googletagmanager.com/gtag/js?id=${id}"></script><script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${id}',{send_page_view:true});</script>`;
-  html = html.replace('</head>', `${analytics}</head>`);
+const gaId = process.env.GA4_MEASUREMENT_ID ? process.env.GA4_MEASUREMENT_ID.replace(/[^A-Za-z0-9-]/g, '') : '';
+const analytics = gaId ? `<script async src="https://www.googletagmanager.com/gtag/js?id=${gaId}"></script><script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${gaId}',{send_page_view:true});document.addEventListener('click',function(e){const a=e.target.closest('a');if(!a)return;const href=a.getAttribute('href')||'';if(href==='/assessment.html'||href.startsWith('/assessment.html?'))gtag('event','assessment_start',{event_category:'acquisition',link_url:href,page_path:location.pathname});if(href.startsWith('https://natcorp.aproposgroupllc.com'))gtag('event','natcorp_referral',{event_category:'cross_site',link_url:href,page_path:location.pathname});});</script>` : '';
+
+if (analytics && !html.includes('www.googletagmanager.com/gtag/js')) html = html.replace('</head>', `${analytics}</head>`);
+fs.writeFileSync(file, html);
+
+if (analytics) {
+  for (const path of [
+    'business-assessment/index.html',
+    'small-business-support/index.html',
+    'business-planning/index.html'
+  ]) {
+    const target = new URL(`../${path}`, import.meta.url);
+    let page = fs.readFileSync(target, 'utf8');
+    if (!page.includes('www.googletagmanager.com/gtag/js')) {
+      page = page.replace('</head>', `${analytics}</head>`);
+      fs.writeFileSync(target, page);
+    }
+  }
 }
 
-fs.writeFileSync(file, html);
 console.log('NEBC SEO Phase 1 build transformations applied.');
 await import('./seo-validate.mjs');
