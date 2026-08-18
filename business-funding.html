@@ -21,8 +21,10 @@
 <script>
 (function(){
   const existing=Store.get('abc_profile')||{};
-  if(existing.businessName) $('businessName').value=existing.businessName;
-  if(existing.state) $('state').value=String(existing.state).toUpperCase();
+  const savedFunding=Store.get('abfop_funding_profile')||{};
+  if(existing.businessName||savedFunding.businessName) $('businessName').value=existing.businessName||savedFunding.businessName;
+  if(existing.state||savedFunding.state) $('state').value=String(existing.state||savedFunding.state).toUpperCase();
+  ['amount','use','revenue','employees','capital','timing'].forEach(id=>{if(savedFunding[id]!==undefined&&savedFunding[id]!==null&&savedFunding[id]!=='') $(id).value=savedFunding[id]});
 
   function renderError(data){
     if(data.error==='FUNDING_SOURCE_NOT_CONFIGURED') return '<strong>Funding source connection pending.</strong><p>The NEBC matching interface is working, but the controlled OPPORTUNITY funding-source endpoint has not yet been configured in this environment. No substitute or fabricated records were returned.</p>';
