@@ -1,6 +1,12 @@
 'use strict';
 
+const crypto = require('crypto');
+
 const ALLOWED_PROGRAMS = new Set(['microloan', 'sbic']);
+const SOURCE_SNAPSHOT_SHA256 = '86e86b9c6b1d29bdeff5d5f06b00294acbd1a2116ac448981d6bdf1f0ff89293';
+const CATALOG_PROJECTION_SHA256 = '8303dc22f2953f1f7f9b4558431328ff38c82ced507f64e6a525f79db4e5aaa0';
+const CATALOG_GENERATED_AT = '2026-08-19T00:00:20.307275+00:00';
+const CATALOG_RECORD_COUNT = 549;
 
 function clean(value) { return String(value ?? '').trim(); }
 function normalizeState(value) { return clean(value).toUpperCase(); }
@@ -50,9 +56,27 @@ function validateSourceEnvelope(payload) {
   return { snapshot_sha256: payload.snapshot_sha256.toLowerCase(), generated_at: payload.generated_at, records };
 }
 
+function loadEmbeddedEnvelope() {
+  const records = [
+    ...require('./_funding-catalog-1'),
+    ...require('./_funding-catalog-2'),
+    ...require('./_funding-catalog-3'),
+    ...require('./_funding-catalog-4'),
+    ...require('./_funding-catalog-5')
+  ];
+  if (records.length !== CATALOG_RECORD_COUNT) throw new Error(`CATALOG_COUNT_MISMATCH:${records.length}`);
+  const hash = crypto.createHash('sha256').update(JSON.stringify(records)).digest('hex');
+  if (hash !== CATALOG_PROJECTION_SHA256) throw new Error('CATALOG_PROJECTION_HASH_MISMATCH');
+  return validateSourceEnvelope({
+    snapshot_sha256: CATALOG_PROJECTION_SHA256,
+    generated_at: CATALOG_GENERATED_AT,
+    records
+  });
+}
+
 function rankMatches(profile, envelope) {
   const programs = requestedPrograms(profile);
-  const matches = envelope.records
+  const candidates = envelope.records
     .filter(record => programs.includes(record.program))
     .map(record => {
       let relevance = 50;
@@ -70,13 +94,27 @@ function rankMatches(profile, envelope) {
       return { ...record, relevance: Math.min(relevance, 100), reasons };
     })
     .sort((a, b) => b.relevance - a.relevance || a.name.localeCompare(b.name));
+
   return {
     programs,
-    matches,
+    matches: candidates.slice(0, 25),
+    totalCandidates: candidates.length,
+    returnedMatches: Math.min(candidates.length, 25),
     snapshot_sha256: envelope.snapshot_sha256,
+    source_snapshot_sha256: SOURCE_SNAPSHOT_SHA256,
     generated_at: envelope.generated_at,
+    catalog_record_count: CATALOG_RECORD_COUNT,
     disclaimer: 'Screening guidance only. A listed source is not an approval, commitment, guarantee of eligibility, or confirmation that the source serves this business.'
   };
 }
 
-module.exports = { validateProfile, requestedPrograms, validateSourceEnvelope, rankMatches };
+module.exports = {
+  validateProfile,
+  requestedPrograms,
+  validateSourceEnvelope,
+  loadEmbeddedEnvelope,
+  rankMatches,
+  SOURCE_SNAPSHOT_SHA256,
+  CATALOG_PROJECTION_SHA256,
+  CATALOG_RECORD_COUNT
+};
