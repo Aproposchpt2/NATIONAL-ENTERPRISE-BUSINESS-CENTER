@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Business Funding Opportunity Center | NEBC</title>
+<meta name="description" content="NEBC members can build a funding profile and identify business funding paths including SBA Microloan and SBIC capital sources.">
+<link rel="canonical" href="https://nebc.aproposgroupllc.com/business-funding">
+<link rel="stylesheet" href="/styles.css">
+<style>
+.funding-shell{max-width:1100px;margin:0 auto;padding:70px 28px}.funding-hero{padding:52px;border:1px solid rgba(213,170,77,.35);border-radius:22px;background:#061b3a;color:#fff}.funding-hero h1{font-family:Cinzel,serif;font-size:clamp(2.2rem,5vw,4.2rem);line-height:1.02;margin:12px 0}.funding-hero .eyebrow{color:#e8c982;font-weight:800;letter-spacing:.1em;text-transform:uppercase}.funding-hero p{max-width:760px;line-height:1.7}.funding-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:18px;margin:24px 0}.funding-card{padding:28px;border:1px solid #d8dee8;border-radius:18px;background:#fff;color:#102033}.funding-card h2{margin-top:0}.funding-form{margin-top:24px;padding:32px;border-radius:18px;background:#fff;color:#102033}.funding-form label{display:block;font-weight:700;margin:14px 0 6px}.funding-form input,.funding-form select{width:100%;padding:12px;border:1px solid #bbc5d3;border-radius:9px}.funding-form button{margin-top:22px;padding:14px 22px;border:0;border-radius:10px;background:#d5aa4d;color:#061b3a;font-weight:900;cursor:pointer}.funding-form button[disabled]{opacity:.6;cursor:wait}.funding-result{display:none;margin-top:20px;padding:22px;border-left:4px solid #d5aa4d;background:#f8f4e8;color:#102033}.match{padding:16px 0;border-top:1px solid #d8dee8}.match:first-of-type{border-top:0}.match h3{margin:0 0 4px}.match-meta{font-size:.8rem;color:#526173}.match ul{margin:8px 0 0 18px}.source-control{font-size:.74rem;color:#687587;word-break:break-all}.note{font-size:.84rem;opacity:.75;margin-top:14px}@media(max-width:720px){.funding-grid{grid-template-columns:1fr}.funding-hero{padding:30px}}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap"><a class="logo" href="/index.html"><span class="mk">N</span>NATIONAL ENTERPRISE BUSINESS CENTER™</a><nav class="nav"><a href="/assessment.html">Assessment</a><a href="/documents.html">Documents</a><a href="/morgans-office.html">Morgan's Office</a></nav></div></header>
+<main class="funding-shell">
+<section class="funding-hero"><div class="eyebrow">NEBC Member Service</div><h1>Business Funding Opportunity Center</h1><p>Build on your NEBC business profile to identify funding paths that fit your business. The first controlled funding channels are SBA Microloan intermediaries and SBA-licensed Small Business Investment Companies (SBICs).</p></section>
+<section class="funding-grid"><article class="funding-card"><h2>SBA Microloan</h2><p>NEBC compares your funding profile with controlled SBA Microloan intermediary records. The system surfaces source records for further review without representing that a lender has approved or prequalified the business.</p></article><article class="funding-card"><h2>SBIC Investment Capital</h2><p>NEBC can also compare growth-capital needs with controlled SBA SBIC records. A match indicates relevance for review, not investment eligibility or commitment.</p></article></section>
+<section class="funding-form"><h2>Build Your Funding Profile</h2><p>Your existing NEBC assessment is used when available. Add the funding-specific information needed for this search.</p><form id="fundingProfile"><label for="businessName">Business name</label><input id="businessName" name="businessName" placeholder="Your business"><label for="state">Business state</label><input id="state" name="state" maxlength="2" required placeholder="NV"><label for="amount">Funding amount sought</label><input id="amount" name="amount" type="number" min="1" required placeholder="50000"><label for="use">Primary use of funds</label><select id="use" name="use" required><option value="">Select one</option><option value="working-capital">Working capital</option><option value="equipment">Equipment / machinery</option><option value="inventory">Inventory / supplies</option><option value="expansion">Business expansion</option><option value="growth">Growth capital</option><option value="other">Other business purpose</option></select><label for="revenue">Approximate annual revenue</label><input id="revenue" name="revenue" type="number" min="0" placeholder="250000"><label for="employees">Number of employees</label><input id="employees" name="employees" type="number" min="0" value="0"><label for="capital">Capital preference</label><select id="capital" name="capital"><option value="open">Open to appropriate funding</option><option value="debt">Debt financing</option><option value="investment">Investment / equity capital</option></select><label for="timing">When is funding needed?</label><select id="timing" name="timing"><option value="now">As soon as practical</option><option value="90">Within 90 days</option><option value="later">More than 90 days</option></select><button type="submit" id="matchBtn">Find Funding Sources →</button></form><div class="funding-result" id="fundingResult"></div><p class="note">Results are screening guidance, not an approval, offer of credit, investment commitment, guarantee of eligibility, or confirmation that a source serves the business.</p></section>
+</main>
+<script src="/app.js"></script>
+<script>
+(function(){
+  const existing=Store.get('abc_profile')||{};
+  const savedFunding=Store.get('abfop_funding_profile')||{};
+  if(existing.businessName||savedFunding.businessName) $('businessName').value=existing.businessName||savedFunding.businessName;
+  if(existing.state||savedFunding.state) $('state').value=String(existing.state||savedFunding.state).toUpperCase();
+  ['amount','use','revenue','employees','capital','timing'].forEach(id=>{if(savedFunding[id]!==undefined&&savedFunding[id]!==null&&savedFunding[id]!=='') $(id).value=savedFunding[id]});
+
+  function renderError(data){
+    if(data.error==='FUNDING_SOURCE_NOT_CONFIGURED') return '<strong>Funding source connection pending.</strong><p>The NEBC matching interface is working, but the controlled OPPORTUNITY funding-source endpoint has not yet been configured in this environment. No substitute or fabricated records were returned.</p>';
+    if(data.error==='INVALID_PROFILE') return '<strong>Please review the funding profile.</strong><p>'+escapeHtml((data.details||[]).join('; '))+'</p>';
+    return '<strong>Funding source search unavailable.</strong><p>'+escapeHtml(data.error||'The controlled source service could not be reached.')+'</p>';
+  }
+
+  function renderMatches(data){
+    const records=data.matches||[];
+    const head='<strong>'+records.length+' controlled source'+(records.length===1?'':'s')+' returned</strong><p>Programs reviewed: '+escapeHtml((data.programs||[]).join(', ').toUpperCase())+'</p>';
+    const body=records.length?records.map(r=>'<article class="match"><h3>'+escapeHtml(r.name)+'</h3><div class="match-meta">'+escapeHtml(r.program.toUpperCase())+(r.city||r.state?' · '+escapeHtml([r.city,r.state].filter(Boolean).join(', ')):'')+' · Relevance '+Number(r.relevance||0)+'/100</div><ul>'+(r.reasons||[]).map(x=>'<li>'+escapeHtml(x)+'</li>').join('')+'</ul></article>').join(''):'<p>No records in the controlled snapshot matched the selected program channels. This does not establish funding ineligibility.</p>';
+    return head+body+'<p class="source-control">Controlled snapshot: '+escapeHtml(data.snapshot_sha256||'unknown')+' · Generated: '+escapeHtml(data.generated_at||'unknown')+'</p>';
+  }
+
+  $('fundingProfile').addEventListener('submit',async function(e){
+    e.preventDefault();
+    const box=$('fundingResult'),btn=$('matchBtn');
+    const payload={businessName:$('businessName').value.trim(),state:$('state').value.trim().toUpperCase(),amount:Number($('amount').value),use:$('use').value,revenue:$('revenue').value,employees:$('employees').value,capital:$('capital').value,timing:$('timing').value};
+    Store.set('abfop_funding_profile',payload);
+    btn.disabled=true;btn.textContent='Searching controlled sources…';box.style.display='none';
+    try{
+      const response=await fetch('/.netlify/functions/funding-match',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+      const data=await response.json();
+      box.innerHTML=data.ok?renderMatches(data):renderError(data);
+    }catch(_){box.innerHTML='<strong>Funding source search unavailable.</strong><p>The NEBC server interface could not be reached. No match determination was made.</p>'}
+    finally{btn.disabled=false;btn.textContent='Find Funding Sources →';box.style.display='block';box.scrollIntoView({behavior:'smooth',block:'nearest'});}
+  });
+})();
+</script>
+</body></html>
