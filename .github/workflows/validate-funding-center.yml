@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - agent/abfop-nebc-funding-center
+      - agent/abfop-funding-intelligence
     paths:
       - '.github/workflows/validate-funding-center.yml'
       - 'netlify/functions/_funding-match.js'
@@ -32,8 +33,6 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: agent/abfop-nebc-funding-center
       - uses: actions/setup-node@v4
         with:
           node-version: '20'

@@ -58,41 +58,65 @@ function validateSourceEnvelope(payload) {
 
 function loadEmbeddedEnvelope() {
   const records = [
-    ...require('./_funding-catalog-1'),
-    ...require('./_funding-catalog-2'),
-    ...require('./_funding-catalog-3'),
-    ...require('./_funding-catalog-4'),
-    ...require('./_funding-catalog-5')
+    ...require('./_funding-catalog-1'), ...require('./_funding-catalog-2'), ...require('./_funding-catalog-3'),
+    ...require('./_funding-catalog-4'), ...require('./_funding-catalog-5')
   ];
   if (records.length !== CATALOG_RECORD_COUNT) throw new Error(`CATALOG_COUNT_MISMATCH:${records.length}`);
   const hash = crypto.createHash('sha256').update(JSON.stringify(records)).digest('hex');
   if (hash !== CATALOG_PROJECTION_SHA256) throw new Error('CATALOG_PROJECTION_HASH_MISMATCH');
-  return validateSourceEnvelope({
-    snapshot_sha256: CATALOG_PROJECTION_SHA256,
-    generated_at: CATALOG_GENERATED_AT,
-    records
-  });
+  return validateSourceEnvelope({ snapshot_sha256: CATALOG_PROJECTION_SHA256, generated_at: CATALOG_GENERATED_AT, records });
+}
+
+function buildIntelligence(profile, record) {
+  const fit = [];
+  const gaps = [];
+  let relevance = 50;
+
+  fit.push(record.program === 'microloan'
+    ? 'This source is in the SBA Microloan channel, which aligns with a debt-financing search.'
+    : 'This source is an SBA-licensed SBIC, which aligns with an investment-capital search.');
+
+  if (record.state && record.state === profile.state) {
+    relevance += 30;
+    fit.push(`The source is located in the business state (${profile.state}), increasing geographic relevance.`);
+  } else if (record.state) {
+    gaps.push(`Confirm that a source located in ${record.state} serves businesses in ${profile.state}.`);
+  } else {
+    gaps.push('Confirm the source service area because the controlled record does not establish a state location.');
+  }
+
+  const microloanUses = ['working-capital', 'equipment', 'inventory', 'expansion', 'other'];
+  const sbicUses = ['growth', 'expansion', 'other'];
+  if (record.program === 'microloan' && microloanUses.includes(profile.use)) {
+    relevance += 10;
+    fit.push(`The stated use of funds (${profile.use.replaceAll('-', ' ')}) is directionally consistent with this financing channel.`);
+  } else if (record.program === 'sbic' && sbicUses.includes(profile.use)) {
+    relevance += 10;
+    fit.push(`The stated use of funds (${profile.use.replaceAll('-', ' ')}) is directionally consistent with growth/investment capital.`);
+  } else {
+    gaps.push(`Confirm that the proposed use of funds (${profile.use.replaceAll('-', ' ')}) is accepted by this source.`);
+  }
+
+  gaps.push(`Confirm that the requested amount ($${Math.round(profile.amount).toLocaleString('en-US')}) fits this source's current financing or investment range.`);
+  gaps.push(record.program === 'microloan'
+    ? 'Confirm current underwriting requirements, collateral/guaranty requirements if any, documentation, and application availability.'
+    : 'Confirm current investment thesis, target company profile, stage, sector preferences, ownership expectations, and minimum/maximum investment size.');
+
+  if (profile.revenue == null) gaps.push('Annual revenue is not yet available for source-level qualification review.');
+  if (profile.employees == null) gaps.push('Employee count is not yet available for source-level qualification review.');
+
+  const nextAction = record.program === 'microloan'
+    ? `Verify ${record.name}'s service area, current lending parameters, required documents, and application/contact path before treating this as an actionable lending lead.`
+    : `Verify ${record.name}'s current investment thesis, check size, sector/stage fit, and contact path before treating this as an actionable capital lead.`;
+
+  return { relevance: Math.min(relevance, 100), fit, gaps, nextAction };
 }
 
 function rankMatches(profile, envelope) {
   const programs = requestedPrograms(profile);
   const candidates = envelope.records
     .filter(record => programs.includes(record.program))
-    .map(record => {
-      let relevance = 50;
-      const reasons = [`Program channel matches ${record.program === 'microloan' ? 'debt financing' : 'investment capital'} preference.`];
-      if (record.state && record.state === profile.state) {
-        relevance += 30;
-        reasons.push(`Source is located in ${profile.state}.`);
-      } else if (record.state) {
-        reasons.push(`Source is located in ${record.state}; geographic/service-area eligibility still requires confirmation.`);
-      } else {
-        reasons.push('Source record does not establish a state restriction; service area still requires confirmation.');
-      }
-      if (record.program === 'microloan' && ['working-capital', 'equipment', 'inventory', 'expansion', 'other'].includes(profile.use)) relevance += 10;
-      if (record.program === 'sbic' && ['growth', 'expansion', 'other'].includes(profile.use)) relevance += 10;
-      return { ...record, relevance: Math.min(relevance, 100), reasons };
-    })
+    .map(record => ({ ...record, ...buildIntelligence(profile, record) }))
     .sort((a, b) => b.relevance - a.relevance || a.name.localeCompare(b.name));
 
   return {
@@ -104,17 +128,12 @@ function rankMatches(profile, envelope) {
     source_snapshot_sha256: SOURCE_SNAPSHOT_SHA256,
     generated_at: envelope.generated_at,
     catalog_record_count: CATALOG_RECORD_COUNT,
-    disclaimer: 'Screening guidance only. A listed source is not an approval, commitment, guarantee of eligibility, or confirmation that the source serves this business.'
+    intelligence_version: 'ABFOP-NEBC-FUNDING-INTELLIGENCE-001',
+    disclaimer: 'Screening guidance only. Fit indicators are not eligibility findings, approvals, commitments, or confirmation that a source will serve or finance the business.'
   };
 }
 
 module.exports = {
-  validateProfile,
-  requestedPrograms,
-  validateSourceEnvelope,
-  loadEmbeddedEnvelope,
-  rankMatches,
-  SOURCE_SNAPSHOT_SHA256,
-  CATALOG_PROJECTION_SHA256,
-  CATALOG_RECORD_COUNT
+  validateProfile, requestedPrograms, validateSourceEnvelope, loadEmbeddedEnvelope,
+  buildIntelligence, rankMatches, SOURCE_SNAPSHOT_SHA256, CATALOG_PROJECTION_SHA256, CATALOG_RECORD_COUNT
 };

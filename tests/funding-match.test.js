@@ -7,6 +7,7 @@ const {
   requestedPrograms,
   validateSourceEnvelope,
   loadEmbeddedEnvelope,
+  buildIntelligence,
   rankMatches,
   SOURCE_SNAPSHOT_SHA256,
   CATALOG_PROJECTION_SHA256,
@@ -47,13 +48,33 @@ test('loads the embedded catalog only when count and projection hash match', () 
   assert.equal(SOURCE_SNAPSHOT_SHA256, '86e86b9c6b1d29bdeff5d5f06b00294acbd1a2116ac448981d6bdf1f0ff89293');
 });
 
-test('ranks same-state controlled records higher', () => {
+test('funding intelligence separates fit evidence from unresolved confirmation', () => {
+  const profile = validateProfile(profileInput).profile;
+  const intel = buildIntelligence(profile, envelopeInput.records[0]);
+  assert.ok(intel.fit.some(x => x.includes('business state')));
+  assert.ok(intel.gaps.some(x => x.includes('requested amount')));
+  assert.match(intel.nextAction, /Verify/);
+  assert.equal(intel.relevance, 90);
+});
+
+test('out-of-state source is a relevance candidate, not an eligibility finding', () => {
+  const profile = validateProfile({ ...profileInput, capital: 'investment', use: 'growth' }).profile;
+  const intel = buildIntelligence(profile, envelopeInput.records[1]);
+  assert.ok(intel.gaps.some(x => x.includes('serves businesses in NV')));
+  assert.ok(intel.fit.some(x => x.includes('SBIC')));
+  assert.equal(intel.relevance, 60);
+});
+
+test('ranks same-state controlled records higher and returns intelligence version', () => {
   const profile = validateProfile(profileInput).profile;
   const envelope = validateSourceEnvelope(envelopeInput);
   const result = rankMatches(profile, envelope);
   assert.equal(result.matches[0].id, 'm1');
   assert.equal(result.matches.length, 2);
   assert.equal(result.snapshot_sha256, 'a'.repeat(64));
+  assert.equal(result.intelligence_version, 'ABFOP-NEBC-FUNDING-INTELLIGENCE-001');
+  assert.ok(Array.isArray(result.matches[0].fit));
+  assert.ok(Array.isArray(result.matches[0].gaps));
 });
 
 test('embedded catalog returns a bounded prioritized result set', () => {
