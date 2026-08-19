@@ -1,0 +1,41 @@
+name: Validate NEBC funding center
+
+on:
+  push:
+    branches:
+      - agent/abfop-nebc-funding-center
+    paths:
+      - '.github/workflows/validate-funding-center.yml'
+      - 'netlify/functions/_funding-match.js'
+      - 'netlify/functions/_funding-catalog-*.js'
+      - 'netlify/functions/funding-match.js'
+      - 'tests/funding-match.test.js'
+      - 'business-funding.html'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/abfop-nebc-funding-center
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Run funding center tests
+        run: node --test tests/funding-match.test.js
+      - name: Verify function can load embedded catalog
+        run: |
+          node - <<'NODE'
+          const m = require('./netlify/functions/_funding-match');
+          const e = m.loadEmbeddedEnvelope();
+          if (e.records.length !== 549) throw new Error('record count mismatch');
+          console.log('records=', e.records.length);
+          console.log('projection_sha256=', e.snapshot_sha256);
+          console.log('source_sha256=', m.SOURCE_SNAPSHOT_SHA256);
+          NODE
