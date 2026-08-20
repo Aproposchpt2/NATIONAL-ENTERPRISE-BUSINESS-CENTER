@@ -53,7 +53,7 @@ function recommend(input) {
   if (wantsContracts) add('proposal', 'Because contract leads become valuable when the business is ready to respond.');
   add('assistant', 'Because Morgan’s post-assessment interview is included automatically.');
 
-  const recommendedServices = rec.slice(0, 8).map(({ key, reason }) => ({ key, ...SERVICE_LIBRARY[key], reason }));
+  const recommendedServices = rec.slice(0, 9).map(({ key, reason }) => ({ key, ...SERVICE_LIBRARY[key], reason }));
 
   let businessStage = 'BUILD';
   if (noBasics) businessStage = 'START';
