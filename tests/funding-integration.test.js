@@ -39,6 +39,14 @@ test('Morgan funding action resolves to the controlled Funding Center', () => {
   assert.match(source, /OPENAI_API_KEY/);
 });
 
+test('assessment result carries known funding profile context and makes funding immediate', () => {
+  const source = read('netlify/functions/generate-plan.js');
+  assert.match(source, /'website', 'funding', 'federal_contracts'/);
+  assert.match(source, /email: i\.email,/);
+  assert.match(source, /state: i\.state,/);
+  assert.match(source, /servicesNeeded: i\.servicesNeeded,/);
+});
+
 test('Funding Center uses server API and member profile reuse', () => {
   const html = read('business-funding.html');
   assert.match(html, /Store\.get\('abc_profile'\)/);
