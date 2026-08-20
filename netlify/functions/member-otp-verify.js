@@ -23,7 +23,7 @@ exports.handler = async (event) => {
 
   const base = `${SUPABASE_URL.replace(/\/$/, '')}/rest/v1/biz_center_members`;
   try {
-    const sel = 'select=full_name,business_name,business_stage,readiness_score,business_status,services_needed,agent_context,subscription_status,trial_end,login_code,login_code_expires';
+    const sel = 'select=full_name,business_name,state,business_stage,readiness_score,business_status,services_needed,agent_context,subscription_status,trial_end,login_code,login_code_expires';
     const rows = await fetch(`${base}?email=eq.${encodeURIComponent(email)}&${sel}`, { headers: sbH() }).then(r => r.json()).catch(() => []);
     const m = Array.isArray(rows) && rows[0];
     if (!m || !m.login_code || m.login_code !== code) return j(401, { ok: false, error: 'Invalid or used code' });
@@ -40,6 +40,7 @@ exports.handler = async (event) => {
       email,
       fullName: m.full_name,
       businessName: m.business_name,
+      state: m.state || '',
       businessStage: m.business_stage || rec.businessStage,
       readinessScore: m.readiness_score,
       servicesNeeded: m.services_needed || [],
