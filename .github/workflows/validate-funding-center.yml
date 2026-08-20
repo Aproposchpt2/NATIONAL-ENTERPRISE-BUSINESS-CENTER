@@ -15,6 +15,7 @@ on:
       - 'netlify/functions/assistant.js'
       - 'netlify/functions/member-otp-verify.js'
       - 'tests/funding-match.test.js'
+      - 'tests/funding-api.test.js'
       - 'tests/funding-integration.test.js'
       - 'assessment.html'
       - 'business-funding.html'
@@ -30,6 +31,7 @@ on:
       - 'netlify/functions/assistant.js'
       - 'netlify/functions/member-otp-verify.js'
       - 'tests/funding-match.test.js'
+      - 'tests/funding-api.test.js'
       - 'tests/funding-integration.test.js'
       - 'assessment.html'
       - 'business-funding.html'
@@ -48,7 +50,7 @@ jobs:
         with:
           node-version: '20'
       - name: Run funding center tests
-        run: node --test tests/funding-match.test.js tests/funding-integration.test.js
+        run: node --test tests/funding-match.test.js tests/funding-api.test.js tests/funding-integration.test.js
       - name: Verify function can load embedded catalog
         run: |
           node - <<'NODE'
