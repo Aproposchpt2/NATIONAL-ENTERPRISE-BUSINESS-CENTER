@@ -1,9 +1,10 @@
 name: Morgan Connectivity Precheck
 
 on:
-  push:
+  pull_request:
+    types: [opened, reopened, synchronize]
     branches:
-      - validation/morgan-funding-runtime-d768039f
+      - agent/nebc-funding-integration
     paths:
       - '.github/workflows/morgan-connectivity-precheck.yml'
       - 'validation/morgan-connectivity-precheck.js'
