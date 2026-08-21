@@ -160,7 +160,10 @@ h1,h2,p{margin:0}
 
 <main>
 <section class="hero" id="top">
-  <img class="hero-media" src="/assets/nebc-hero.webp" srcset="/assets/nebc-hero-800.webp 800w, /assets/nebc-hero.webp 1600w" sizes="100vw" width="1600" height="1067" alt="" fetchpriority="high" decoding="async">
+  <picture>
+    <source type="image/avif" srcset="/.netlify/images?url=/assets/nebc-hero.webp&amp;w=800&amp;fm=avif&amp;q=40 800w, /.netlify/images?url=/assets/nebc-hero.webp&amp;w=1600&amp;fm=avif&amp;q=40 1600w" sizes="100vw">
+    <img class="hero-media" src="/assets/nebc-hero.webp" srcset="/assets/nebc-hero-800.webp 800w, /assets/nebc-hero.webp 1600w" sizes="100vw" width="1600" height="1067" alt="" fetchpriority="high" decoding="async">
+  </picture>
   <div class="wrap">
     <div class="hero-content">
       <span class="kicker">Your Partner in Business Success</span>
