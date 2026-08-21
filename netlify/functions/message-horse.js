@@ -1,146 +1,182 @@
-// Apropos Message Horse — the in-house, set-and-forget daily messaging engine.
-// Each day it generates an on-brand message and delivers it. Fully self-owned:
-//   - Generates the post with Claude (on-brand voice, rotating value props).
-//   - Posts it straight to the Facebook PAGE via the Meta Graph API (legit, ToS-safe).
-//   - Emails the share-ready version to the owner (to one-tap share to a personal feed).
+// Apropos Message Horse — daily content distribution for the current APROPOS site suite.
+// Generates one on-brand Facebook post, can publish it to the Facebook Page,
+// and/or email the owner a review copy.
 //
-// MODE (env MESSAGE_HORSE_MODE): 'email' (default — review-only), 'post' (auto-post to FB),
-//   or 'both'. Start in 'email' to watch it for a few days, then flip to 'both' and forget it.
+// MESSAGE_HORSE_MODE values:
+//   paused  -> generate nothing / deliver nothing
+//   email   -> email review copy only
+//   post    -> publish to Facebook only
+//   both    -> publish to Facebook + email a record/review copy
 //
-// Runs on a daily schedule AND can be hit manually (GET the function URL) to test.
+// Scheduled daily at 15:00 UTC (~8am Pacific during daylight time).
 
 const FB_API = 'https://graph.facebook.com/v21.0';
-const MODEL = process.env.MESSAGE_MODEL || 'claude-sonnet-4-6';
-const SITE = 'https://aibizcenter.aproposgroupllc.com';
+const DEFAULT_PAGE_ID = '61573363201770';
+const DEFAULT_MODEL = 'claude-sonnet-4-6';
 
 const THEMES = [
-  { key: 'business-center', url: 'https://aibizcenter.aproposgroupllc.com',            brief: 'The Apropos Business Center is a real, online, full-service business center that DOES the work instead of advising — it hands you the finished plan, documents, website, and the contracts. The whole business journey, start to grow, in one place.' },
-  { key: 'contrast',        url: 'https://aibizcenter.aproposgroupllc.com',            brief: "What a government-funded business development center won't do — Apropos does. No costume, no smoke and mirrors: a self-funded federal contractor and licensed Nevada corporation, built to deliver real results, not host another class." },
-  { key: 'contracts',       url: 'https://ngcc.aproposgroupllc.com',                   brief: 'Stop scrolling through endless pages of open and closed government contracts. StateGen brings the contracts to YOU — matched to your business, ranked, and ready to bid — now live nationwide.' },
-  { key: 'capgen',          url: 'https://capgen.aproposgroupllc.com',                 brief: 'CapGen builds your brand, your website, your content, and your proposals FOR you — not a blank template, the finished thing. The creation work, done.' },
-  { key: 'opportunity',     url: 'https://aibizcenter.aproposgroupllc.com',            brief: 'We provide opportunity — the kind that leads to success. Find the money and programs you actually qualify for, matched to your situation, in minutes.' },
-  { key: 'documents',       url: 'https://aibizcenter.aproposgroupllc.com/#documents', brief: 'Need an NDA, an LLC operating agreement, a service contract, or a clean invoice? Generate a real, ready-to-use business document in minutes — drafted for your business.' },
-  { key: 'free',            url: 'https://aibizcenter.aproposgroupllc.com/#start',     brief: 'Start FREE. Your tailored business plan, your business documents, and a 24/7 AI business assistant — free. We earn your business by delivering, not by charging at the door.' },
+  {
+    key: 'corporate-ai-procurement',
+    name: 'Apropos Group LLC',
+    url: 'https://aproposgroupllc.com/ai-procurement-modernization',
+    brief: 'Explain how Apropos Group LLC approaches AI procurement modernization, acquisition workflow automation, procurement intelligence, document processing, supplier intelligence, and governed decision support while keeping accountable human review in the loop.'
+  },
+  {
+    key: 'marketplace-contract-intelligence',
+    name: 'APROPOS Marketing Marketplace',
+    url: 'https://marketplace.aproposgroupllc.com/government-contract-intelligence/',
+    brief: 'Help businesses understand government contract intelligence and how the APROPOS Marketing Marketplace routes them to the right federal, state, local, or business-readiness pathway without pretending the Marketplace itself is the operational contract database.'
+  },
+  {
+    key: 'federal-contractors',
+    name: 'Registered Federal Contractors Portal',
+    url: 'https://federalcontractorportal.aproposgroupllc.com/guides/',
+    brief: 'Educate registered and aspiring federal contractors about finding and evaluating federal opportunities, SAM.gov readiness, NAICS alignment, bid/no-bid decisions, capability statements, and solicitation review. Do not imply government affiliation or guarantee awards.'
+  },
+  {
+    key: 'state-local-sled',
+    name: 'National Corporate Contract Exchange',
+    url: 'https://natcorp.aproposgroupllc.com/guides/',
+    brief: 'Educate businesses about state, local, and education (SLED) contracting, vendor registration, procurement portals, cooperative purchasing, and opportunity discovery. Keep the distinction from federal contracting clear.'
+  },
+  {
+    key: 'nevada-business-readiness',
+    name: 'Nevada Enterprise Business Center',
+    url: 'https://nebc.aproposgroupllc.com/guides/',
+    brief: 'Explain business readiness, funding readiness, business planning, and structured self-assessment for Nevada businesses. Position NEBC as complementary to public Nevada business resources and never promise financing, grants, or approval.'
+  }
 ];
 
+function env(name, fallback = '') {
+  const value = Netlify.env.get(name);
+  return value == null || value === '' ? fallback : value;
+}
+
 function pickTheme() {
-  // Rotate by day so the message stays fresh and never repeats two days running.
   const dayIndex = Math.floor(Date.now() / 86400000);
   return THEMES[dayIndex % THEMES.length];
 }
 
 async function generateMessage(theme) {
-  const link = theme.url || SITE;
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return `${theme.brief}\n\nStart free at ${link}`;
-  }
-  const prompt = `You write the daily Facebook post for the Apropos Business Center (an online full-service business center built by Apropos Group LLC — a self-funded federal contractor and licensed Nevada corporation).
+  const apiKey = env('ANTHROPIC_API_KEY');
+  const model = env('MESSAGE_MODEL', DEFAULT_MODEL);
+  if (!apiKey) return `${theme.brief}\n\nLearn more: ${theme.url}`;
 
-Voice: confident, plain-spoken, a little bold — a founder who is "about it," not all talk. Real, never corporate-stiff, never spammy.
+  const prompt = `You write the daily Facebook post for Apropos Group LLC and its current digital properties.\n\nToday's featured property: ${theme.name}\nCanonical link: ${theme.url}\nToday's angle: ${theme.brief}\n\nVoice: confident, useful, plain-spoken, professional, and specific. Never spammy.\n\nWrite ONE Facebook post:\n- Start with a strong first-line hook.\n- Use 1–3 short paragraphs that teach something useful.\n- Describe the featured property accurately and do not invent capabilities.\n- Include a clear call to action ending with the exact canonical link ${theme.url}\n- Use at most 1–2 relevant hashtags, or none.\n- Do not claim government affiliation, guaranteed awards, guaranteed funding, guaranteed eligibility, or guaranteed results.\n- Do not mention retired APROPOS properties or old brand names.\n- Output ONLY the ready-to-publish post text.`;
 
-Today's angle: ${theme.brief}
-
-Write ONE Facebook post:
-- A strong first-line hook that stops the scroll.
-- 1–3 short paragraphs of real value (what it does FOR them, not buzzwords).
-- A clear call to action ending with the link ${link}
-- At most 1–2 relevant hashtags (or none). No emoji spam — one or two at most, only if natural.
-- Do NOT name or attack any specific organization. Critique the "all talk, no delivery" model in general if relevant.
-- Output ONLY the post text, ready to publish. No preamble, no quotes around it.`;
-
-  const r = await fetch('https://api.anthropic.com/v1/messages', {
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
-    headers: { 'content-type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
-    body: JSON.stringify({ model: MODEL, max_tokens: 700, messages: [{ role: 'user', content: prompt }] }),
+    headers: {
+      'content-type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01'
+    },
+    body: JSON.stringify({ model, max_tokens: 700, messages: [{ role: 'user', content: prompt }] })
   });
-  const data = await r.json();
-  if (!r.ok) throw new Error(data?.error?.message || 'AI generation failed');
-  const text = (data.content || []).map(c => c.text || '').join('').trim();
-  return text || `${theme.brief}\n\nStart free at ${link}`;
+  const data = await response.json();
+  if (!response.ok) throw new Error(data?.error?.message || `AI generation failed (${response.status})`);
+  const text = (data.content || []).map((item) => item.text || '').join('').trim();
+  return text || `${theme.brief}\n\nLearn more: ${theme.url}`;
 }
 
-// A system-user token isn't a page token. Resolve the page's OWN access token
-// (the canonical, ToS-safe way for New Pages Experience): try the page node,
-// then /me/accounts (the system user's managed pages). Returns {id, token, diag}.
 async function resolvePageContext(token, pageId) {
   const diag = {};
-  // 1) Direct page node
   try {
-    const r = await fetch(`${FB_API}/${pageId}?fields=access_token,name&access_token=${encodeURIComponent(token)}`);
-    const d = await r.json();
-    diag.direct = r.ok ? (d.access_token ? 'got-token' : 'no-token') : (d?.error?.message || ('HTTP ' + r.status));
-    if (r.ok && d.access_token) return { id: pageId, token: d.access_token, diag };
-  } catch (e) { diag.direct = String(e.message || e); }
-  // 2) /me/accounts — the pages this (system) user manages, each with a page token
+    const response = await fetch(`${FB_API}/${pageId}?fields=access_token,name&access_token=${encodeURIComponent(token)}`);
+    const data = await response.json();
+    diag.direct = response.ok ? (data.access_token ? 'got-token' : 'no-token') : (data?.error?.message || `HTTP ${response.status}`);
+    if (response.ok && data.access_token) return { id: pageId, token: data.access_token, diag };
+  } catch (error) { diag.direct = String(error?.message || error); }
+
   try {
-    const r = await fetch(`${FB_API}/me/accounts?fields=id,name,access_token&access_token=${encodeURIComponent(token)}`);
-    const d = await r.json();
-    if (r.ok && Array.isArray(d.data)) {
-      diag.accounts = d.data.length;
-      const match = d.data.find(p => p.id === pageId) || d.data[0];
-      if (match && match.access_token) return { id: match.id, token: match.access_token, diag };
+    const response = await fetch(`${FB_API}/me/accounts?fields=id,name,access_token&access_token=${encodeURIComponent(token)}`);
+    const data = await response.json();
+    if (response.ok && Array.isArray(data.data)) {
+      diag.accounts = data.data.length;
+      const match = data.data.find((page) => page.id === pageId) || data.data[0];
+      if (match?.access_token) return { id: match.id, token: match.access_token, diag };
     } else {
-      diag.accounts = d?.error?.message || ('HTTP ' + r.status);
+      diag.accounts = data?.error?.message || `HTTP ${response.status}`;
     }
-  } catch (e) { diag.accounts = String(e.message || e); }
+  } catch (error) { diag.accounts = String(error?.message || error); }
+
   return { id: pageId, token, diag };
 }
 
 async function postToFacebook(message) {
-  const pageId = process.env.FB_PAGE_ID || '61573363201770';
-  const token = process.env.FB_PAGE_TOKEN;
+  const pageId = env('FB_PAGE_ID', DEFAULT_PAGE_ID);
+  const token = env('FB_PAGE_TOKEN');
   if (!token) return { posted: false, reason: 'FB_PAGE_TOKEN not set' };
   try {
-    const ctx = await resolvePageContext(token, pageId);
-    const r = await fetch(`${FB_API}/${ctx.id}/feed`, {
+    const page = await resolvePageContext(token, pageId);
+    const response = await fetch(`${FB_API}/${page.id}/feed`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message, access_token: ctx.token }),
+      body: JSON.stringify({ message, access_token: page.token })
     });
-    const d = await r.json();
-    if (!r.ok) return { posted: false, error: d?.error?.message || ('HTTP ' + r.status), diag: ctx.diag };
-    return { posted: true, id: d.id, diag: ctx.diag };
-  } catch (e) { return { posted: false, error: String(e.message || e) }; }
+    const data = await response.json();
+    if (!response.ok) return { posted: false, error: data?.error?.message || `HTTP ${response.status}`, diag: page.diag };
+    return { posted: true, id: data.id, diag: page.diag };
+  } catch (error) {
+    return { posted: false, error: String(error?.message || error) };
+  }
 }
 
-async function emailOwner(message, fb) {
-  const key = process.env.RESEND_API_KEY;
-  const to = process.env.MESSAGE_RECIPIENT || process.env.RESEND_TO_EMAIL;
-  const from = process.env.RESEND_FROM_EMAIL;
-  if (!key || !to || !from) return { emailed: false, reason: 'Resend env not set' };
-  const status = fb && fb.posted ? '✅ Already posted to your Facebook Page — share it to your personal feed too.'
-    : 'Copy/paste this to your Page and personal feed.';
-  const html = `<div style="font-family:Arial,sans-serif;max-width:640px;margin:0 auto;padding:24px;color:#10241c">
-    <div style="font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#c79a3e;font-weight:700;margin-bottom:10px">Apropos Message Horse · Today's post</div>
-    <div style="font-size:13px;color:#3c5249;margin-bottom:16px">${status}</div>
-    <div style="background:#fbf9f3;border:1px solid #e3ddcf;border-radius:12px;padding:20px;white-space:pre-wrap;font-size:15px;line-height:1.6">${String(message).replace(/&/g,'&amp;').replace(/</g,'&lt;')}</div>
-  </div>`;
+function escapeHtml(value) {
+  return String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+async function emailOwner(message, theme, facebook) {
+  const key = env('RESEND_API_KEY');
+  const to = env('MESSAGE_RECIPIENT', env('RESEND_TO_EMAIL'));
+  const from = env('RESEND_FROM_EMAIL');
+  if (!key || !to || !from) return { emailed: false, reason: 'RESEND_API_KEY, RESEND_FROM_EMAIL, or MESSAGE_RECIPIENT/RESEND_TO_EMAIL is missing' };
+
+  const status = facebook?.posted
+    ? 'Already posted to the Facebook Page. This email is your delivery record and share-ready copy.'
+    : 'Review copy only. This message has not been auto-posted to Facebook.';
+  const html = `<div style="font-family:Arial,sans-serif;max-width:680px;margin:0 auto;padding:24px;color:#10241c"><div style="font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#9a742d;font-weight:700;margin-bottom:10px">Apropos Message Horse · Daily post</div><h2 style="margin:0 0 8px">${escapeHtml(theme.name)}</h2><div style="font-size:13px;color:#3c5249;margin-bottom:16px">${escapeHtml(status)}</div><div style="background:#fbf9f3;border:1px solid #e3ddcf;border-radius:12px;padding:20px;white-space:pre-wrap;font-size:15px;line-height:1.6">${escapeHtml(message)}</div><div style="margin-top:16px;font-size:13px"><a href="${theme.url}">${theme.url}</a></div></div>`;
+
   try {
-    const r = await fetch('https://api.resend.com/emails', {
+    const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
-      headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from, to: Array.isArray(to) ? to : [to], subject: "Today's Apropos post — ready to share", html }),
+      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from, to: [to], subject: `Apropos Message Horse — ${theme.name}`, html })
     });
-    return { emailed: r.ok };
-  } catch (e) { return { emailed: false, error: String(e.message || e) }; }
+    if (!response.ok) {
+      const body = await response.text();
+      return { emailed: false, error: `Resend HTTP ${response.status}`, detail: body.slice(0, 300) };
+    }
+    return { emailed: true };
+  } catch (error) {
+    return { emailed: false, error: String(error?.message || error) };
+  }
 }
 
-export const config = { schedule: '0 15 * * *' }; // ~8am Pacific daily
+export const config = { schedule: '0 15 * * *' };
 
 export default async (req) => {
-  // ?dry=1 → generate + preview the post (and its link) WITHOUT publishing.
   let dry = false;
   try { dry = new URL(req.url).searchParams.get('dry') === '1'; } catch (_) {}
 
-  const mode = dry ? 'preview' : (process.env.MESSAGE_HORSE_MODE || 'email').toLowerCase();
+  const configuredMode = env('MESSAGE_HORSE_MODE', 'email').toLowerCase();
+  const mode = dry ? 'preview' : configuredMode;
   const theme = pickTheme();
+
+  if (!dry && mode === 'paused') {
+    return new Response(JSON.stringify({ ran: new Date().toISOString(), mode, skipped: true, reason: 'MESSAGE_HORSE_MODE is paused' }, null, 2), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  }
+  if (!['preview', 'email', 'post', 'both'].includes(mode)) {
+    return new Response(JSON.stringify({ ran: new Date().toISOString(), mode, error: 'Unsupported MESSAGE_HORSE_MODE' }, null, 2), { status: 500, headers: { 'Content-Type': 'application/json' } });
+  }
+
   let message;
   try { message = await generateMessage(theme); }
-  catch (e) { message = `${theme.brief}\n\nStart free at ${theme.url || SITE}`; }
+  catch (_) { message = `${theme.brief}\n\nLearn more: ${theme.url}`; }
 
-  const result = { ran: new Date().toISOString(), theme: theme.key, link: theme.url || SITE, mode };
+  const result = { ran: new Date().toISOString(), theme: theme.key, property: theme.name, link: theme.url, mode };
   if (!dry && (mode === 'post' || mode === 'both')) result.facebook = await postToFacebook(message);
-  if (!dry && (mode === 'email' || mode === 'both')) result.email = await emailOwner(message, result.facebook);
+  if (!dry && (mode === 'email' || mode === 'both')) result.email = await emailOwner(message, theme, result.facebook);
   result.message = message;
 
   return new Response(JSON.stringify(result, null, 2), { status: 200, headers: { 'Content-Type': 'application/json' } });
