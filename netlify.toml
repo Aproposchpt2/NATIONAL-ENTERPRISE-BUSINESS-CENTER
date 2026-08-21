@@ -1,4 +1,5 @@
 [build]
+  command = "node scripts/apply-registered-federal-contractors-portal-links.cjs && node scripts/validate-registered-federal-contractors-portal-links.cjs"
   publish = "."
   functions = "netlify/functions"
 
