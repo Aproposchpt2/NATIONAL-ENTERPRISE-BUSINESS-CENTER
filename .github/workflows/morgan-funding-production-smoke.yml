@@ -1,0 +1,24 @@
+name: Morgan Funding Production Smoke
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'validation/morgan-funding-production-smoke.js'
+      - '.github/workflows/morgan-funding-production-smoke.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Run bounded production Morgan Funding smoke
+        run: node validation/morgan-funding-production-smoke.js
