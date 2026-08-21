@@ -48,3 +48,4 @@ patch('netlify/functions/message-horse.js', [
 ]);
 
 console.log('[nebc-portal-rebrand] Applied current federal portal identity, APROPOS entity link, corrected state/local routes, and prioritized the homepage hero.');
+require('./apply-nonblocking-fonts.cjs');
