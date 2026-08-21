@@ -22,10 +22,12 @@ patch('index.html', [
 // Phase 2C performance: the existing hero is served locally as an explicit image
 // so the browser can discover, prioritize, size, and paint the LCP resource early.
 const heroUrl = '/assets/nebc-hero.webp';
-const heroPreload = `<link rel="preload" as="image" href="${heroUrl}" type="image/webp" fetchpriority="high">`;
+const heroMobileUrl = '/assets/nebc-hero-800.webp';
+const heroPreload = `<link rel="preload" as="image" href="${heroUrl}" imagesrcset="${heroMobileUrl} 800w, ${heroUrl} 1600w" imagesizes="100vw" type="image/webp" fetchpriority="high">`;
 let indexHtml = fs.readFileSync('index.html', 'utf8');
 if (!indexHtml.includes(heroUrl)) throw new Error('NEBC performance remediation: active local hero URL not found.');
 if (!fs.existsSync('assets/nebc-hero.webp')) throw new Error('NEBC performance remediation: local hero asset not found.');
+if (!indexHtml.includes(heroMobileUrl) || !fs.existsSync('assets/nebc-hero-800.webp')) throw new Error('NEBC performance remediation: responsive mobile hero asset not found.');
 if (!/<\/head>/i.test(indexHtml)) throw new Error('NEBC performance remediation: closing head tag not found.');
 if (!indexHtml.includes(heroPreload)) indexHtml = indexHtml.replace(/<\/head>/i, `${heroPreload}\n</head>`);
 if ((indexHtml.match(/rel="preload" as="image" href="\/assets\/nebc-hero\.webp"/g) || []).length !== 1) {
