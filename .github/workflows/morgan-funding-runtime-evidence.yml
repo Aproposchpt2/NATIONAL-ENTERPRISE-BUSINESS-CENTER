@@ -7,6 +7,12 @@ on:
     paths:
       - '.github/workflows/morgan-funding-runtime-evidence.yml'
       - 'validation/morgan-funding-runtime-evidence.js'
+  pull_request:
+    branches:
+      - agent/nebc-funding-integration
+    paths:
+      - '.github/workflows/morgan-funding-runtime-evidence.yml'
+      - 'validation/morgan-funding-runtime-evidence.js'
   workflow_dispatch:
 
 permissions:
