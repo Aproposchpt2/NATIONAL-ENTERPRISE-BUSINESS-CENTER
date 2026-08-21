@@ -12,6 +12,10 @@ function patch(file, replacements) {
 patch('index.html', [
   ['National Government Contract Center', 'Registered Federal Contractors Portal'],
   ['https://ngcc.aproposgroupllc.com', 'https://federalcontractorportal.aproposgroupllc.com'],
+  [
+    '"parentOrganization": {\n        "@type": "Organization",\n        "name": "Apropos Group LLC",',
+    '"parentOrganization": {\n        "@type": "Organization",\n        "@id": "https://aproposgroupllc.com/#organization",\n        "name": "APROPOS Group LLC",'
+  ],
 ]);
 
 // These two NEBC files use the former NGCC domain for state/local routing.
@@ -23,4 +27,4 @@ patch('netlify/functions/message-horse.js', [
   ['https://ngcc.aproposgroupllc.com', 'https://natcorp.aproposgroupllc.com'],
 ]);
 
-console.log('[nebc-portal-rebrand] Applied current federal portal identity and corrected state/local routes.');
+console.log('[nebc-portal-rebrand] Applied current federal portal identity, APROPOS entity link, and corrected state/local routes.');
