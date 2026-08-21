@@ -1,0 +1,40 @@
+name: Apply Morgan Funding parser precision fix
+
+on:
+  pull_request:
+    branches:
+      - validation/morgan-funding-parser-fix-base
+    paths:
+      - '.validation/**'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: remediation/morgan-funding-behavior-v1-final
+      - name: Apply exact negative-precedence correction
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('netlify/functions/assistant.js')
+          s = p.read_text()
+          old = "const financial = /(current statements available|organized financial statements)/i.test(combined) ? 'ESTABLISHED' : (/financial statements:\\s*not organized/i.test(context) ? 'GAP' : 'UNKNOWN');"
+          new = "const financial = /(financial statements:\\s*not organized|do not have organized financial statements)/i.test(combined) ? 'GAP' : (/(current statements available|organized financial statements)/i.test(combined) ? 'ESTABLISHED' : 'UNKNOWN');"
+          if old not in s:
+              raise SystemExit('Expected financial status expression not found; no patch applied')
+          p.write_text(s.replace(old, new, 1))
+          PY
+          git diff --check
+          git diff -- netlify/functions/assistant.js
+      - name: Commit exact correction
+        run: |
+          git config user.name 'NEBC Technical Implementation Agent'
+          git config user.email 'actions@users.noreply.github.com'
+          git add -- netlify/functions/assistant.js
+          git commit -m 'Fix Morgan financial readiness negative precedence'
+          git push origin HEAD:remediation/morgan-funding-behavior-v1-final
