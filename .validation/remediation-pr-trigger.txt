@@ -1,0 +1,1 @@
+Trigger trusted pull-request validation for Morgan Funding remediation.
