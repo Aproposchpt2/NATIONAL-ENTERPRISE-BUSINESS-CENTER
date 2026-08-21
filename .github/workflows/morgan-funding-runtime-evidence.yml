@@ -1,12 +1,13 @@
 name: Morgan Funding Runtime Evidence
 
 on:
-  push:
+  pull_request:
+    types: [opened, reopened, synchronize]
     branches:
-      - validation/morgan-funding-runtime-d768039f
+      - agent/nebc-funding-integration
     paths:
       - '.github/workflows/morgan-funding-runtime-evidence.yml'
-      - 'validation/morgan-connectivity-precheck.js'
+      - 'validation/morgan-funding-runtime-evidence.js'
   workflow_dispatch:
 
 permissions:
@@ -15,33 +16,31 @@ permissions:
 jobs:
   runtime-evidence:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     env:
-      MORGAN_PREVIEW_URL: https://deploy-preview-6--nat-enterprise-business-center.netlify.app
+      MORGAN_PREVIEW_URL: https://deploy-preview-9--nat-enterprise-business-center.netlify.app
     steps:
       - name: Checkout validation harness
         uses: actions/checkout@v4
-
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-
       - name: Record validation target
         run: |
           echo 'Implementation branch: agent/nebc-funding-integration'
           echo 'Implementation commit: d768039f08b00b818a74bdb7073e2adde54f83ad'
-          echo 'Deploy preview: https://deploy-preview-6--nat-enterprise-business-center.netlify.app'
-          echo "Harness commit: $GITHUB_SHA"
-
-      - name: Execute single Morgan connectivity precheck
-        run: node validation/morgan-connectivity-precheck.js
-
-      - name: Upload connectivity precheck evidence
+          echo 'Preview deploy id: 6a87a475c0dabf00086113fd'
+          echo 'Preview: https://deploy-preview-9--nat-enterprise-business-center.netlify.app'
+      - name: Execute 12 deployed Morgan funding scenarios
+        run: node validation/morgan-funding-runtime-evidence.js
+      - name: Upload runtime evidence package
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: nebc-morgan-connectivity-precheck
-          path: validation-artifacts/morgan-connectivity-precheck.json
+          name: nebc-morgan-funding-runtime-evidence
+          path: |
+            validation-artifacts/morgan-funding-runtime-evidence.json
+            validation-artifacts/morgan-funding-runtime-evidence.md
           if-no-files-found: error
           retention-days: 30
