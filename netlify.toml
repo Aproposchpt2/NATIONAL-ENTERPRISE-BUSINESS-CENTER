@@ -1,5 +1,5 @@
 [build]
-  command = "node scripts/apply-registered-federal-contractors-portal-links.cjs && node scripts/validate-registered-federal-contractors-portal-links.cjs && node scripts/validate-nevada-readiness-wave1.cjs"
+  command = "node scripts/apply-registered-federal-contractors-portal-links.cjs && node scripts/validate-registered-federal-contractors-portal-links.cjs && node scripts/validate-nevada-readiness-wave1.cjs && node scripts/validate-message-horse-current-sites.cjs"
   publish = "."
   functions = "netlify/functions"
 
