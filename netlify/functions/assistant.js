@@ -226,6 +226,73 @@ function ensureClosing(text) {
   return `${cleaned}\n\n${REQUIRED_CLOSE}`;
 }
 
+function fundingPrecisionProfile(messages, context) {
+  const last = [...messages].reverse().find(m => m.role === 'user')?.content || '';
+  if (!/(fund|loan|grant|capital|financ)/i.test(last)) return null;
+  const combined = `${last}\n${context}`;
+  const taxSpecialist = /(tax structure|accounting method|tax treatment|accounting classification)/i.test(last);
+  const purposeUnknown = /capital purpose:\s*unknown|use of funds:\s*unknown/i.test(context);
+  const knownPrepGaps = /(financial statements:\s*not organized|business plan:\s*incomplete|use-of-funds budget:\s*incomplete|\bmissing\b)/i.test(context);
+  const business = /established operating small business/i.test(context) ? 'ESTABLISHED' : 'UNKNOWN';
+  const financial = /(current statements available|organized financial statements)/i.test(combined) ? 'ESTABLISHED' : (/financial statements:\s*not organized/i.test(context) ? 'GAP' : 'UNKNOWN');
+  const planning = /(business plan and use-of-funds budget complete|current business plan)/i.test(combined) ? 'ESTABLISHED' : (/(business plan:\s*incomplete|use-of-funds budget:\s*incomplete)/i.test(context) ? 'GAP' : 'UNKNOWN');
+  const management = /management capacity:\s*established/i.test(context) ? 'ESTABLISHED' : 'UNKNOWN';
+  const opportunity = /no contract-specific documentation applies/i.test(context) ? 'NOT APPLICABLE' : (/opportunity-specific documentation:.*complete/i.test(context) ? 'ESTABLISHED' : 'UNKNOWN');
+  let classification = null;
+  if (taxSpecialist) classification = 'SPECIALIST REVIEW REQUIRED';
+  else if (knownPrepGaps) classification = 'FUNDING PREPARATION REQUIRED';
+  else if (!purposeUnknown && business === 'ESTABLISHED' && financial === 'ESTABLISHED' && planning === 'ESTABLISHED' && management === 'ESTABLISHED' && (opportunity === 'ESTABLISHED' || opportunity === 'NOT APPLICABLE')) classification = 'FUNDING READY FOR FURTHER EVALUATION';
+  return { last, purposeUnknown, knownPrepGaps, taxSpecialist, classification, dimensions: { business, financial, planning, management, opportunity } };
+}
+
+function fundingDimensionLines(dimensions) {
+  return [
+    `- Business Foundation: ${dimensions.business}`,
+    `- Financial Foundation: ${dimensions.financial}`,
+    `- Business Planning: ${dimensions.planning}`,
+    `- Management Capacity: ${dimensions.management}`,
+    `- Opportunity-Specific Documentation: ${dimensions.opportunity}`
+  ].join('\n');
+}
+
+function applyFundingPrecision(rawText, messages, context) {
+  const profile = fundingPrecisionProfile(messages, context);
+  if (!profile) return { text: rawText, suppressFundingRoute: false };
+
+  if (profile.purposeUnknown) {
+    if (profile.knownPrepGaps) {
+      return {
+        suppressFundingRoute: true,
+        text: `Funding Readiness: FUNDING PREPARATION REQUIRED\n\nFive-dimension check:\n${fundingDimensionLines(profile.dimensions)}\n\nYour immediate priority is to define what the requested capital must accomplish. The financial and planning gaps already identified remain preparation requirements, but selecting a funding pathway before the capital purpose is established would be premature.\n\nWhat will the requested funding be used for—for example equipment, payroll, inventory, contract performance, expansion, or another specific business need?`
+      };
+    }
+    return {
+      suppressFundingRoute: true,
+      text: `The capital purpose is still UNKNOWN. Before I recommend a funding pathway, your immediate priority is to define what the requested capital must accomplish.\n\nWhat will the requested funding be used for—for example equipment, payroll, inventory, contract performance, expansion, or another specific business need?`
+    };
+  }
+
+  if (profile.classification === 'FUNDING READY FOR FURTHER EVALUATION') {
+    return {
+      suppressFundingRoute: false,
+      text: `Funding Readiness: FUNDING READY FOR FURTHER EVALUATION\n\nFive-dimension check:\n${fundingDimensionLines(profile.dimensions)}\n\nYour immediate priority is a controlled funding evaluation for the stated capital purpose. This readiness classification means the business appears prepared for further evaluation; it does not mean any lender or program has approved or qualified the business.\n\nIf you want to review actual funding sources after this readiness step, the Business Funding Opportunity Center performs that controlled source analysis.`
+    };
+  }
+
+  if (profile.classification === 'SPECIALIST REVIEW REQUIRED' && !/Funding Readiness:\s*SPECIALIST REVIEW REQUIRED/i.test(rawText)) {
+    return { text: `Funding Readiness: SPECIALIST REVIEW REQUIRED\n\n${rawText}`, suppressFundingRoute: true };
+  }
+
+  if (profile.classification === 'FUNDING PREPARATION REQUIRED' && !/Funding Readiness:\s*FUNDING PREPARATION REQUIRED/i.test(rawText)) {
+    return {
+      suppressFundingRoute: false,
+      text: `Funding Readiness: FUNDING PREPARATION REQUIRED\n\nFive-dimension check:\n${fundingDimensionLines(profile.dimensions)}\n\n${rawText}`
+    };
+  }
+
+  return { text: rawText, suppressFundingRoute: false };
+}
+
 function extractActions(reply, catalog) {
   const m = String(reply || '').match(/\[\[\s*OPEN\s*:([^\]]*)\]\]/i);
   if (!m) return { text: String(reply || '').trim(), actions: [] };
@@ -315,11 +382,13 @@ exports.handler = async (event) => {
   try {
     const raw = await callOpenAI(system, messages);
     const extracted = extractActions(raw, catalog);
-    const reply = ensureClosing(extracted.text || "I'm here — could you say a bit more?");
+    const precision = applyFundingPrecision(extracted.text, messages, context);
+    const actions = precision.suppressFundingRoute ? extracted.actions.filter(a => a.id !== 'funding') : extracted.actions;
+    const reply = ensureClosing(precision.text || "I'm here — could you say a bit more?");
     if (morganMode || context) {
       await saveMorganSession({ sessionId: body.sessionId, userEmail: body.userEmail, stage: body.stage || 'morgan', messages: messages.concat([{ role: 'assistant', content: reply }]) });
     }
-    return { statusCode: 200, headers, body: JSON.stringify({ ok: true, mode: 'ai', provider: 'openai', reply, actions: extracted.actions }) };
+    return { statusCode: 200, headers, body: JSON.stringify({ ok: true, mode: 'ai', provider: 'openai', reply, actions }) };
   } catch (e) {
     const { text, actions } = fallback(messages);
     return { statusCode: 200, headers, body: JSON.stringify({ ok: true, mode: 'fallback', provider: 'openai', reply: text, actions, error: e.message || 'OpenAI advisor error' }) };
