@@ -234,7 +234,7 @@ function fundingPrecisionProfile(messages, context) {
   const purposeUnknown = /capital purpose:\s*unknown|use of funds:\s*unknown/i.test(context);
   const knownPrepGaps = /(financial statements:\s*not organized|business plan:\s*incomplete|use-of-funds budget:\s*incomplete|\bmissing\b)/i.test(context);
   const business = /established operating small business/i.test(context) ? 'ESTABLISHED' : 'UNKNOWN';
-  const financial = /(current statements available|organized financial statements)/i.test(combined) ? 'ESTABLISHED' : (/financial statements:\s*not organized/i.test(context) ? 'GAP' : 'UNKNOWN');
+  const financial = /(financial statements:\s*not organized|do not have organized financial statements)/i.test(combined) ? 'GAP' : (/(current statements available|organized financial statements)/i.test(combined) ? 'ESTABLISHED' : 'UNKNOWN');
   const planning = /(business plan and use-of-funds budget complete|current business plan)/i.test(combined) ? 'ESTABLISHED' : (/(business plan:\s*incomplete|use-of-funds budget:\s*incomplete)/i.test(context) ? 'GAP' : 'UNKNOWN');
   const management = /management capacity:\s*established/i.test(context) ? 'ESTABLISHED' : 'UNKNOWN';
   const opportunity = /no contract-specific documentation applies/i.test(context) ? 'NOT APPLICABLE' : (/opportunity-specific documentation:.*complete/i.test(context) ? 'ESTABLISHED' : 'UNKNOWN');
