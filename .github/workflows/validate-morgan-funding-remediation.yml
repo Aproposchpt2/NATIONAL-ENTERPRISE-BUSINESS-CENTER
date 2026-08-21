@@ -7,6 +7,12 @@ on:
     paths:
       - 'netlify/functions/assistant.js'
       - '.github/workflows/validate-morgan-funding-remediation.yml'
+      - '.validation/**'
+  pull_request:
+    branches:
+      - remediation/morgan-funding-behavior-v1
+    paths:
+      - '.validation/**'
   workflow_dispatch:
 
 permissions:
