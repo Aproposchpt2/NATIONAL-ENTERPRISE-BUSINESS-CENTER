@@ -1,0 +1,39 @@
+name: Morgan Funding Final Certification
+
+on:
+  pull_request:
+    branches:
+      - validation/morgan-funding-final-certification-base
+    paths:
+      - '.validation/**'
+
+permissions:
+  contents: read
+
+jobs:
+  certify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      MORGAN_PREVIEW_URL: https://deploy-preview-14--nat-enterprise-business-center.netlify.app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Record authoritative target
+        run: |
+          echo 'Implementation commit: f618ccdf3227a309f6a3ac5e879339ea34c202b1'
+          echo 'Deploy ID: 6a87c309a414a20008983ddd'
+      - name: Run accepted Funding test suite
+        run: node --test tests/funding-match.test.js tests/funding-api.test.js tests/funding-integration.test.js
+      - name: Execute required runtime scenarios
+        run: node validation/morgan-funding-final-certification.js
+      - name: Upload certification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nebc-morgan-funding-final-certification
+          path: validation-artifacts/morgan-funding-final-certification.json
+          if-no-files-found: error
+          retention-days: 30
