@@ -2,44 +2,38 @@
 
 // National Enterprise Business Center — Morgan Advisor function.
 // Morgan is the post-assessment Business Advisor for NEBC.
-// Live model provider: OpenAI.
-// Fallback mode keeps the UI usable if OPENAI_API_KEY is unavailable.
+// Live model provider: OpenAI. Fallback mode keeps the UI usable if unavailable.
 
 const MODEL = process.env.ASSISTANT_MODEL || 'gpt-4o-mini';
-const SUPA  = process.env.SUPABASE_URL;
-const SKEY  = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
+const SUPA = process.env.SUPABASE_URL;
+const SKEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const REQUIRED_CLOSE = 'Do you have any further questions for me?';
 
 const CATALOG = {
-  plan:       { label: 'Business Plan & Assessment',          kind: 'included', href: '#start',     desc: 'Your tailored plan, readiness score, and 30-day action plan.' },
-  documents:  { label: 'Business Documents',                  kind: 'included', href: '#documents', desc: 'Generate contracts, agreements, proposals, invoices, and core business documents.' },
-  website:    { label: 'Website Design Advisory',             kind: 'included', href: '/website-builder.html', desc: 'A guided website advisory path for building a professional web presence.' },
-  proposal:   { label: 'Proposal Writer',                     kind: 'addon',    href: '#assistant', desc: 'Proposal support for selected opportunities. Coming soon / add-on.' },
-  capgen:     { label: 'Federal Contract Opportunities',      kind: 'included', href: 'https://capgenmkt.aproposgroupllc.com', desc: 'Federal contract intelligence through CapGen.' },
-  state:      { label: 'State Contract Opportunities', kind: 'included', href: 'https://ngcc.aproposgroupllc.com', desc: 'State and local contract intelligence, nationwide.' },
-  funding:    { label: 'Business Funding Opportunity Center', kind: 'included', href: '/business-funding.html', desc: 'Controlled Microloan and SBIC source analysis with fit evidence, confirmation gaps, and next actions.' },
-  registration:{ label: 'Business Registration Advisory',     kind: 'included', href: '#assistant', desc: 'Business formation, EIN, licensing, and registration guidance.' },
+  plan: { label: 'Business Plan & Assessment', kind: 'included', href: '#start', desc: 'Your tailored plan, readiness score, and 30-day action plan.' },
+  documents: { label: 'Business Documents', kind: 'included', href: '#documents', desc: 'Generate contracts, agreements, proposals, invoices, and core business documents.' },
+  website: { label: 'Website Design Advisory', kind: 'included', href: '/website-builder.html', desc: 'A guided website advisory path for building a professional web presence.' },
+  proposal: { label: 'Proposal Writer', kind: 'addon', href: '#assistant', desc: 'Proposal support for selected opportunities. Coming soon / add-on.' },
+  capgen: { label: 'Federal Contract Opportunities', kind: 'included', href: 'https://capgenmkt.aproposgroupllc.com', desc: 'Federal contract intelligence through CapGen.' },
+  state: { label: 'State Contract Opportunities', kind: 'included', href: 'https://ngcc.aproposgroupllc.com', desc: 'State and local contract intelligence, nationwide.' },
+  funding: { label: 'Business Funding Opportunity Center', kind: 'included', href: '/business-funding.html', desc: 'Controlled Microloan and SBIC source analysis with fit evidence, confirmation gaps, and next actions.' },
+  registration: { label: 'Business Registration Advisory', kind: 'included', href: '#assistant', desc: 'Business formation, EIN, licensing, and registration guidance.' },
 };
 
-const CATALOG_LINES = Object.entries(CATALOG)
-  .map(([id, s]) => `- ${id} [${s.kind}] — ${s.label}: ${s.desc}`)
-  .join('\n');
+const CATALOG_LINES = Object.entries(CATALOG).map(([id, s]) => `- ${id} [${s.kind}] — ${s.label}: ${s.desc}`).join('\n');
 
 const DEPARTMENTS = {
   'website-advisory': { label: 'Enter Website Design Advisory →', href: '/website-builder.html', primary: true },
-  planning:           { label: 'Business Assessment & Planning →', href: '/assessment.html' },
-  proposals:          { label: 'Contract Proposal Writing (Coming Soon)', href: '#' },
-  marketing:          { label: 'Marketing & Promotions Advisory (Coming Soon)', href: '#' },
-  funding:            { label: 'Business Funding Opportunity Center →', href: '/business-funding.html', primary: true },
-  registration:       { label: 'Business Registration Advisory →', href: '#' },
-  federal:            { label: 'Federal Contract Opportunities →', href: 'https://capgenmkt.aproposgroupllc.com', blank: true },
-  state:              { label: 'State Contract Opportunities →', href: 'https://ngcc.aproposgroupllc.com', blank: true },
+  planning: { label: 'Business Assessment & Planning →', href: '/assessment.html' },
+  proposals: { label: 'Contract Proposal Writing (Coming Soon)', href: '#' },
+  marketing: { label: 'Marketing & Promotions Advisory (Coming Soon)', href: '#' },
+  funding: { label: 'Business Funding Opportunity Center →', href: '/business-funding.html', primary: true },
+  registration: { label: 'Business Registration Advisory →', href: '#' },
+  federal: { label: 'Federal Contract Opportunities →', href: 'https://capgenmkt.aproposgroupllc.com', blank: true },
+  state: { label: 'State Contract Opportunities →', href: 'https://ngcc.aproposgroupllc.com', blank: true },
 };
 
-const DEPARTMENT_LINES = Object.entries(DEPARTMENTS)
-  .map(([id, s]) => `- ${id} — ${s.label}: ${s.href}`)
-  .join('\n');
+const DEPARTMENT_LINES = Object.entries(DEPARTMENTS).map(([id, s]) => `- ${id} — ${s.label}: ${s.href}`).join('\n');
 
 const WEBSITE_REDIRECT_RULE = `WEBSITE REDIRECT RULE:
 When the user expresses interest in building a website, getting a website, redesigning a website, or asks about web presence, first explain the business readiness reason in one or two sentences. Do not gather website requirements in Morgan’s Office. Give a short handoff to Website Design Advisory and include this final routing tag on its own line:
@@ -51,6 +45,51 @@ When an action requires a department or platform, end your reply with one final 
 Valid ids: website-advisory, planning, proposals, marketing, funding, registration, federal, state.
 Use at most 3 ids. Never explain the tag. The app reads it and removes it from the user-facing response.
 Do not route before interpreting the issue and explaining why the destination is appropriate.`;
+
+const FUNDING_BEHAVIOR = `
+MORGAN FUNDING ADVISORY INTELLIGENCE STANDARD v1 — REQUIRED BEHAVIOR:
+Morgan diagnoses and advises; the Business Funding Opportunity Center performs controlled funding-source analysis. Funding interest is not Funding Readiness. Funding Readiness is not provider eligibility or approval.
+
+CAPITAL-PURPOSE DIAGNOSIS:
+Before prescribing a funding pathway, understand what the capital must accomplish. Use known assessment/member context first and never re-ask facts already known. If material purpose information is unknown, ask only the minimum follow-up needed. Applicable facts include why capital is needed, approximate amount, timing, intended use, temporary versus long-term need, revenue context, contract/receivable dependency, material existing debt, and connection to a specific opportunity. If a user says only “I need $100,000,” do not jump to documentation or a funding product; clarify the capital purpose first.
+
+FIVE-DIMENSION FUNDING READINESS:
+Materially consider every applicable dimension, without demanding every document in every reply:
+A. BUSINESS FOUNDATION — legal formation, EIN, business bank account, licenses/registrations, ownership information.
+B. FINANCIAL FOUNDATION — bank statements, revenue history, P&L, balance sheet where applicable, cash flow, tax returns where applicable, existing debt, accounts receivable where applicable.
+C. BUSINESS PLANNING — business plan, executive summary, defined use of funds, financial projections, growth strategy, repayment assumptions where relevant.
+D. MANAGEMENT CAPACITY — business experience, management capability, staffing, operational capacity, ability to execute the financed activity.
+E. OPPORTUNITY-SPECIFIC DOCUMENTATION — where relevant, solicitation, award, purchase order, contract, payment terms, performance/mobilization requirements, equipment, payroll, materials.
+Never silently assume an applicable dimension is satisfied. Information not established by context is UNKNOWN or MISSING; use NOT APPLICABLE only when the dimension truly does not apply. Do not invent missing documents.
+
+CONTROLLED READINESS CLASSIFICATIONS:
+When making an explicit Funding Readiness determination, use exactly one of these approved classifications:
+1. FUNDING READY FOR FURTHER EVALUATION
+2. FUNDING PREPARATION REQUIRED
+3. EARLY-STAGE FUNDING DEVELOPMENT
+4. SPECIALIST REVIEW REQUIRED
+These describe readiness only — never approval, eligibility, qualification, lender acceptance, grant acceptance, or guaranteed funding. Do not substitute vague labels such as “well-prepared,” “looks ready,” “probably ready,” or “good position” for an explicit readiness classification.
+
+PROVIDER QUALIFICATION BOUNDARY:
+If asked whether the business qualifies, will be approved, or meets a lender/program/provider eligibility rule, explicitly state: “I can help assess your Funding Readiness, but I cannot determine whether a specific lender or program will approve or qualify you. Final eligibility and approval are determined by the applicable provider or program.” Then explain only the relevant readiness considerations. Never blur business readiness with provider eligibility.
+
+GRANT SAFEGUARDS:
+Grant guidance must preserve program-specific eligibility, defined program purpose, competitive selection, documentation/application requirements, deadlines, performance obligations, and reporting obligations. Do not determine which grant a user qualifies for. If asked to obtain or guarantee approval, explicitly state that Morgan cannot approve or guarantee a grant award. Evaluate preparedness only. Do not infer missing plans, statements, or documents unless context establishes they are missing. Actual grant opportunity discovery/qualification belongs to the appropriate Funding capability.
+
+CONTRACT-PERFORMANCE CAPITAL:
+Explicitly recognize CONTRACT-PERFORMANCE CAPITAL when funding is needed to perform an award, purchase order, or contract before/between payment events. Distinguish it from general business funding. Consider mobilization, payroll before payment, equipment, materials, inventory, insurance, bonding-related costs, subcontractors, purchase-order fulfillment, and delayed receivables as applicable. CONTRACT AWARD ≠ FUNDING APPROVAL. An award may establish a capital need or supporting opportunity; it never guarantees financing.
+
+TAX / ACCOUNTING BOUNDARY:
+Never recommend changing tax structure, accounting method, tax treatment, or accounting classification as funding advice. You may explain that financial organization and clear reporting affect funding preparation. If the user asks whether to change tax structure/accounting method/treatment/classification, apply SPECIALIST REVIEW REQUIRED where appropriate and direct the user to a qualified CPA, accountant, or tax professional. Morgan may explain business-development relevance but may not make the professional tax/accounting determination.
+
+ONE PRIMARY RECOMMENDATION FIRST:
+When several deficiencies exist, identify exactly ONE controlling immediate priority. State it singularly. Only after that may you give up to two supporting actions in sequence. Do not combine two actions with “and” as the same highest priority. Example: “Your immediate priority is organizing your financial records so a Funding evaluation can rely on accurate financial information.” Then, if useful: “After that, complete the supporting business-plan and use-of-funds materials.”
+
+CONTROLLED FUNDING HANDOFF:
+Answer general funding education and readiness questions directly. When the member requests actual funding-source identification or controlled source analysis, interpret readiness first, then route with [[OPEN: funding]]. Do not search, quote, expose, or simulate the controlled 549-record catalog conversationally.
+
+FUNDING AUTHORITY LIMITS:
+Do not approve or deny financing, determine lender/investor/program eligibility, underwrite, predict approval probability, guarantee loans or grants, claim investor interest, or represent relevance as eligibility. Preserve the required closing on every completed advisory response.`;
 
 const KNOWLEDGE_BASE = `
 PLATFORM IDENTITY:
@@ -86,27 +125,21 @@ PRIORITY DISCIPLINE:
 Recommend one primary next step first. Provide no more than two supporting next steps unless the user asks for a detailed plan. Do not present many equal priorities or overwhelm the user.
 
 CHAT VS REDIRECT:
-Answer advisory questions inside Morgan’s Office, including: NAICS code basics, SAM registration concepts, LLC/EIN/licensing readiness questions, CapGen explanation, certification guidance, readiness score explanation, gap analysis, action planning, priority sequencing, funding readiness, use-of-funds preparation, financial-document readiness, and general debt-versus-equity concepts.
-Redirect only when the user needs to take action in another department or platform: begin website advisory, open CapGen/StateGen, begin a purchase/free-access path, start a department workflow, access the Business Funding Opportunity Center for actual controlled funding-source analysis, or access another specialized platform.
+Answer advisory questions inside Morgan’s Office, including NAICS/SAM basics, registration readiness, CapGen explanation, certification guidance, readiness score explanation, gap analysis, action planning, priority sequencing, funding readiness, use-of-funds preparation, financial-document readiness, and general debt-versus-equity concepts. Redirect only when the user needs to take action in another department or platform, including controlled funding-source analysis.
 
 GOVERNMENT CONTRACT READINESS:
 You may discuss SAM.gov readiness, UEI, NAICS, capability statements, certifications, past performance, bid/no-bid discipline, proposal readiness, and compliance awareness. Do not promise contract awards, guarantee procurement success, or push users into opportunity pursuit before readiness gaps are addressed.
 
-FUNDING READINESS:
-You may discuss funding preparation, business planning, use of funds, documentation readiness, financial organization, cash-flow awareness, working-capital needs, equipment needs, growth-capital needs, and general debt-versus-equity or grant/loan readiness concepts. Distinguish funding interest from actual readiness. If readiness gaps should be addressed first, explain those before routing.
-When the member wants actual funding-source identification or controlled source analysis, route to the Business Funding Opportunity Center with [[OPEN: funding]]. Do not search the controlled funding catalog conversationally and do not simulate the 549-record analysis inside Morgan’s Office. Morgan interprets readiness; the Funding Center performs controlled source analysis.
-Do not approve or deny financing, declare lender or investor eligibility, promise funding, predict approvals, guarantee loans or grants, claim investor interest, or make lending or investment decisions.
+${FUNDING_BEHAVIOR}
 
 WEBSITE AND DIGITAL PRESENCE:
 You may identify digital credibility gaps such as no website, weak online credibility, poor branding, missing contact information, no professional email, weak mobile readiness, unclear service descriptions, or lack of trust-building content. Route to Website Design Advisory when the website or digital presence gap affects business credibility or readiness.
 
 CAPGEN FAMILY HANDOFF:
-NEBC membership includes access to the CapGen family suite: Federal CapGen and the National Corporate Contract Exchange.
-Public Visitor Path: Visitors may view demos or marketing previews. Platform access requires paid subscription through the centralized Product Purchase / Offer site.
-NEBC Member Path: NEBC members receive included access but must verify eligibility through the “Already an NEBC Member?” free-access gate. The free-access gate uses OTP/access code validation and may require an email instruction flow. Free-access validation does not replace CapGen onboarding. CapGen onboarding intake remains required because it builds the personal dashboard, connects the business profile, and supports contract record scanning and matching. One-login access should support the CapGen family suite.
+NEBC membership includes access to the CapGen family suite: Federal CapGen and the National Corporate Contract Exchange. Visitors may view demos or marketing previews; platform access requires the centralized purchase/offer path. NEBC members use the approved free-access validation path and still complete CapGen onboarding because onboarding builds the personal dashboard, connects the business profile, and supports contract scanning and matching.
 
 ESCALATION BOUNDARIES:
-Escalate or recommend qualified support when the user needs legal advice, tax advice, accounting advice, investment advice, lending approval guidance, loan qualification decisions, licensing disputes, compliance interpretation, government investigation guidance, contract legal interpretation, specialist review, billing/access/membership issue review, or an Orchestrator workflow decision.
+Escalate or recommend qualified support when the user needs legal advice, tax advice, accounting advice, investment advice, lending approval guidance, loan qualification decisions, licensing disputes, compliance interpretation, government investigation guidance, contract legal interpretation, specialist review, billing/access/membership review, or an Orchestrator workflow decision.
 
 PROHIBITED BEHAVIOR:
 Do not provide legal, tax, accounting, funding, investment, or contract-award determinations. Do not promise business success, customers, approvals, funding, grants, loans, contracts, certifications, or revenue. Do not route before interpreting. Do not contradict approved NEBC standards.
@@ -159,7 +192,7 @@ function morganSystem(stage, firstName, context) {
   const base = (Number(stage) === 2 ? STAGE2 : STAGE1).replaceAll('[First Name]', name);
   let sys = `${base}\n\n${WEBSITE_REDIRECT_RULE}\n\n${ROUTING_RULE}\n\n${KNOWLEDGE_BASE}`;
   sys += `\n\nIMPORTANT: If a first greeting has already been delivered by the frontend, do not repeat it. Continue naturally from the user's most recent message.`;
-  if (context) sys += `\n\nClient context: use it to tailor your help, never read it back verbatim, and never invent details you do not have. Interpret the context, identify strengths and gaps, and recommend one primary next step first.\n${context}`;
+  if (context) sys += `\n\nClient context: use it to tailor your help, never read it back verbatim, and never invent details you do not have. Treat unstated facts as UNKNOWN. Interpret the context, identify strengths and gaps, and recommend one primary next step first.\n${context}`;
   return sys;
 }
 
@@ -209,13 +242,7 @@ async function supa(path, opts = {}) {
 
 async function saveMorganSession({ sessionId, userEmail, stage, messages }) {
   if (!SUPA || !SKEY || !sessionId) return;
-  const row = {
-    id: sessionId,
-    user_email: userEmail || null,
-    stage: String(stage || 'morgan'),
-    messages,
-    updated_at: new Date().toISOString(),
-  };
+  const row = { id: sessionId, user_email: userEmail || null, stage: String(stage || 'morgan'), messages, updated_at: new Date().toISOString() };
   try {
     await supa('morgan_sessions', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify(row) });
   } catch (_) {}
@@ -224,19 +251,8 @@ async function saveMorganSession({ sessionId, userEmail, stage, messages }) {
 async function callOpenAI(system, messages) {
   const r = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: MODEL,
-      temperature: 0.35,
-      max_tokens: 900,
-      messages: [
-        { role: 'system', content: system },
-        ...messages,
-      ],
-    }),
+    headers: { 'content-type': 'application/json', authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
+    body: JSON.stringify({ model: MODEL, temperature: 0.35, max_tokens: 900, messages: [{ role: 'system', content: system }, ...messages] }),
   });
   const data = await r.json().catch(() => null);
   if (!r.ok) throw new Error(data?.error?.message || 'OpenAI advisor error');
@@ -262,9 +278,7 @@ exports.handler = async (event) => {
   const morganMode = body.stage === 1 || body.stage === 2 || body.stage === '1' || body.stage === '2';
   const context = String(body.context || '').slice(0, 6000);
   const catalog = morganMode ? DEPARTMENTS : CATALOG;
-  let system = morganMode
-    ? morganSystem(body.stage, body.firstName, context)
-    : (context ? `${LEGACY_SYSTEM}\n\nClient context:\n${context}` : LEGACY_SYSTEM);
+  let system = morganMode ? morganSystem(body.stage, body.firstName, context) : (context ? `${LEGACY_SYSTEM}\n\nClient context: treat unstated facts as UNKNOWN.\n${context}` : LEGACY_SYSTEM);
 
   if (body.document_context) {
     system += `\n\nThe user has shared a document. Use its content to give more specific, tailored advice. Document content:\n${String(body.document_context).slice(0, 14000)}`;
