@@ -23,14 +23,17 @@ patch('index.html', [
 // so the browser can discover, prioritize, size, and paint the LCP resource early.
 const heroUrl = '/assets/nebc-hero.webp';
 const heroMobileUrl = '/assets/nebc-hero-800.webp';
-const heroPreload = `<link rel="preload" as="image" href="${heroUrl}" imagesrcset="${heroMobileUrl} 800w, ${heroUrl} 1600w" imagesizes="100vw" type="image/webp" fetchpriority="high">`;
+const heroAvifUrl = '/.netlify/images?url=/assets/nebc-hero.webp&amp;w=1600&amp;fm=avif&amp;q=40';
+const heroMobileAvifUrl = '/.netlify/images?url=/assets/nebc-hero.webp&amp;w=800&amp;fm=avif&amp;q=40';
+const heroPreload = `<link rel="preload" as="image" href="${heroAvifUrl}" imagesrcset="${heroMobileAvifUrl} 800w, ${heroAvifUrl} 1600w" imagesizes="100vw" type="image/avif" fetchpriority="high">`;
 let indexHtml = fs.readFileSync('index.html', 'utf8');
 if (!indexHtml.includes(heroUrl)) throw new Error('NEBC performance remediation: active local hero URL not found.');
 if (!fs.existsSync('assets/nebc-hero.webp')) throw new Error('NEBC performance remediation: local hero asset not found.');
 if (!indexHtml.includes(heroMobileUrl) || !fs.existsSync('assets/nebc-hero-800.webp')) throw new Error('NEBC performance remediation: responsive mobile hero asset not found.');
+if (!indexHtml.includes(heroMobileAvifUrl)) throw new Error('NEBC performance remediation: responsive AVIF hero source not found.');
 if (!/<\/head>/i.test(indexHtml)) throw new Error('NEBC performance remediation: closing head tag not found.');
 if (!indexHtml.includes(heroPreload)) indexHtml = indexHtml.replace(/<\/head>/i, `${heroPreload}\n</head>`);
-if ((indexHtml.match(/rel="preload" as="image" href="\/assets\/nebc-hero\.webp"/g) || []).length !== 1) {
+if ((indexHtml.match(/rel="preload" as="image" href="\/\.netlify\/images\?url=\/assets\/nebc-hero\.webp&amp;w=1600&amp;fm=avif&amp;q=40"/g) || []).length !== 1) {
   throw new Error('NEBC performance remediation: hero preload must appear exactly once.');
 }
 fs.writeFileSync('index.html', indexHtml, 'utf8');
