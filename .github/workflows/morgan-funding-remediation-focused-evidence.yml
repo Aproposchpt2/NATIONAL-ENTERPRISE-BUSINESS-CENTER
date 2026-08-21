@@ -1,0 +1,46 @@
+name: Morgan Funding Remediation Focused Runtime Evidence
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+    branches:
+      - remediation/morgan-funding-behavior-v1
+    paths:
+      - '.github/workflows/morgan-funding-remediation-focused-evidence.yml'
+      - 'validation/morgan-funding-remediation-focused-evidence.js'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  focused-runtime-evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      MORGAN_PREVIEW_URL: https://deploy-preview-10--nat-enterprise-business-center.netlify.app
+    steps:
+      - name: Checkout focused validation harness
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Record validation target
+        run: |
+          echo 'Remediation branch: remediation/morgan-funding-behavior-v1'
+          echo 'Remediation commit: 02977fa40a10df211712dd1f1204d517aaa8be60'
+          echo 'Preview deploy id: 6a87b05835882b0007a66b2e'
+          echo 'Preview: https://deploy-preview-10--nat-enterprise-business-center.netlify.app'
+      - name: Execute 7 focused deployed Morgan Funding scenarios
+        run: node validation/morgan-funding-remediation-focused-evidence.js
+      - name: Upload focused runtime evidence package
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nebc-morgan-funding-remediation-focused-evidence
+          path: |
+            validation-artifacts/morgan-funding-remediation-focused-evidence.json
+            validation-artifacts/morgan-funding-remediation-focused-evidence.md
+          if-no-files-found: error
+          retention-days: 30
