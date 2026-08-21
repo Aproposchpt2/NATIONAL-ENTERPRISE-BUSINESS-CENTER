@@ -7,6 +7,12 @@ on:
     paths:
       - '.github/workflows/morgan-connectivity-precheck.yml'
       - 'validation/morgan-connectivity-precheck.js'
+  pull_request:
+    branches:
+      - agent/nebc-funding-integration
+    paths:
+      - '.github/workflows/morgan-connectivity-precheck.yml'
+      - 'validation/morgan-connectivity-precheck.js'
   workflow_dispatch:
 
 permissions:
