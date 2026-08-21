@@ -1,0 +1,42 @@
+name: Morgan Connectivity Precheck
+
+on:
+  push:
+    branches:
+      - validation/morgan-funding-runtime-d768039f
+    paths:
+      - '.github/workflows/morgan-connectivity-precheck.yml'
+      - 'validation/morgan-connectivity-precheck.js'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  precheck:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      MORGAN_PREVIEW_URL: https://deploy-preview-6--nat-enterprise-business-center.netlify.app
+    steps:
+      - name: Checkout validation harness
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Record target
+        run: |
+          echo 'Implementation branch: agent/nebc-funding-integration'
+          echo 'Implementation commit: d768039f08b00b818a74bdb7073e2adde54f83ad'
+          echo 'Preview: https://deploy-preview-6--nat-enterprise-business-center.netlify.app'
+      - name: Execute single Morgan connectivity precheck
+        run: node validation/morgan-connectivity-precheck.js
+      - name: Upload precheck evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nebc-morgan-connectivity-precheck
+          path: validation-artifacts/morgan-connectivity-precheck.json
+          if-no-files-found: error
+          retention-days: 30
