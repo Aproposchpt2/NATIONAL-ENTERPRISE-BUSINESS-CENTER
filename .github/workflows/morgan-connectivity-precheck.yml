@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      MORGAN_PREVIEW_URL: https://deploy-preview-6--nat-enterprise-business-center.netlify.app
+      MORGAN_PREVIEW_URL: https://deploy-preview-9--nat-enterprise-business-center.netlify.app
     steps:
       - name: Checkout validation harness
         uses: actions/checkout@v4
@@ -30,7 +30,8 @@ jobs:
         run: |
           echo 'Implementation branch: agent/nebc-funding-integration'
           echo 'Implementation commit: d768039f08b00b818a74bdb7073e2adde54f83ad'
-          echo 'Preview: https://deploy-preview-6--nat-enterprise-business-center.netlify.app'
+          echo 'Preview deploy id: 6a87a475c0dabf00086113fd'
+          echo 'Preview: https://deploy-preview-9--nat-enterprise-business-center.netlify.app'
       - name: Execute single Morgan connectivity precheck
         run: node validation/morgan-connectivity-precheck.js
       - name: Upload precheck evidence
