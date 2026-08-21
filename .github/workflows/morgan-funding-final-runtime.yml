@@ -1,0 +1,39 @@
+name: Morgan Funding Final Runtime Validation
+
+on:
+  pull_request:
+    branches:
+      - validation/morgan-funding-final-runtime-base
+    paths:
+      - '.validation/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  final-runtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      MORGAN_PREVIEW_URL: https://deploy-preview-14--nat-enterprise-business-center.netlify.app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Record target
+        run: |
+          echo 'Implementation commit: cdbdda5c8a76d2292b8d7b772c5b1ce026de5463'
+          echo 'Deploy ID: 6a87c12bd21c5d0008db6f36'
+          echo 'Preview: https://deploy-preview-14--nat-enterprise-business-center.netlify.app'
+      - name: Execute TEST 02 TEST 03 TEST 07 TEST FR-01
+        run: node validation/morgan-funding-final-runtime-evidence.js
+      - name: Upload final runtime evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nebc-morgan-funding-final-runtime-evidence
+          path: validation-artifacts/morgan-funding-final-runtime-evidence.json
+          if-no-files-found: error
+          retention-days: 30
