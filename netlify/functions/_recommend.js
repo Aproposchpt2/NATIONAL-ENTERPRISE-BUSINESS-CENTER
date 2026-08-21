@@ -13,6 +13,7 @@ const SERVICE_LIBRARY = {
   marketing: { label: 'Marketing Agent', icon: '📣', href: 'https://ai4-product-purchasing.ai4businesses.org/marketing-agent-offer.html', blurb: 'Create consistent promotional content and customer outreach.' },
   federal_contracts: { label: 'Federal Contract Leads', icon: '🏛', href: 'https://capgenmkt.aproposgroupllc.com', blurb: 'Federal opportunity intelligence through CapGen, matched to the business capability profile.' },
   state_contracts: { label: 'State Contract Leads', icon: '🏙', href: 'https://ngcc.aproposgroupllc.com', blurb: 'State and local opportunity intelligence, nationwide, through the National Corporate Contract Exchange.' },
+  funding: { label: 'Business Funding Opportunity Center', icon: '💵', href: '/business-funding.html', blurb: 'Identify relevant controlled business-funding sources and review fit evidence, unresolved qualification questions, and next actions.' },
   proposal: { label: 'Develop My Proposal', icon: '📝', href: 'https://gcpdc.aproposgroupllc.com', blurb: 'AI-engineered government contract proposals — tailored to the solicitation, matched to your capability profile, built to win.' },
   assistant: { label: 'Morgan’s Office', icon: '💬', href: '#assistant', blurb: 'Post-assessment advisory guidance is included automatically.' },
 };
@@ -31,6 +32,7 @@ function recommend(input) {
   const wantsContracts = ['contracts', 'win contracts'].includes(stage) || wantsFederal || wantsState || needs.has('proposal');
   const wantsWebsite = needs.has('website');
   const wantsEin = needs.has('ein');
+  const wantsFunding = needs.has('funding');
 
   const missing = [];
   if (wantsEin || isStartup) missing.push('EIN');
@@ -45,12 +47,13 @@ function recommend(input) {
   add('business_plan', 'Every path starts from your tailored business plan.');
   if (noBasics || wantsEin) { add('formation', 'Because you need the foundation organized before the next stage.'); add('documents', 'Because early business records and documents need to be in place.'); }
   if (wantsWebsite) add('website', 'Because you asked for help getting your website built.');
+  if (wantsFunding) add('funding', 'Because you indicated that the business needs funding or capital and should evaluate relevant financing sources.');
   if (wantsFederal) add('federal_contracts', 'Because you need leads to federal government contract opportunities through CapGen.');
   if (wantsState) add('state_contracts', 'Because you need leads to state government contract opportunities through the State CapGen sites.');
   if (wantsContracts) add('proposal', 'Because contract leads become valuable when the business is ready to respond.');
   add('assistant', 'Because Morgan’s post-assessment interview is included automatically.');
 
-  const recommendedServices = rec.slice(0, 8).map(({ key, reason }) => ({ key, ...SERVICE_LIBRARY[key], reason }));
+  const recommendedServices = rec.slice(0, 9).map(({ key, reason }) => ({ key, ...SERVICE_LIBRARY[key], reason }));
 
   let businessStage = 'BUILD';
   if (noBasics) businessStage = 'START';
@@ -60,7 +63,7 @@ function recommend(input) {
   const nextSteps = [
     'Review and save your AI-generated business plan.',
     missing.length ? `Start with the missing foundation item: ${missing[0]}.` : 'Continue to Morgan’s Office for your post-assessment interview.',
-    wantsContracts ? 'Use CapGen for federal leads and the State CapGen sites for state and local contract leads.' : 'Use Morgan’s Office to turn this plan into a 7-day action list.',
+    wantsContracts ? 'Use CapGen for federal leads and the State CapGen sites for state and local contract leads.' : wantsFunding ? 'Use Morgan’s Office to review funding readiness, then open the Business Funding Opportunity Center when source analysis is appropriate.' : 'Use Morgan’s Office to turn this plan into a 7-day action list.',
   ];
 
   return { businessStage, missingItems: missing.slice(0, 8), recommendedServices, nextSteps };

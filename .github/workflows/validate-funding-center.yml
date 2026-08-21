@@ -5,12 +5,20 @@ on:
     branches:
       - agent/abfop-nebc-funding-center
       - agent/abfop-funding-intelligence
+      - agent/nebc-funding-integration
     paths:
       - '.github/workflows/validate-funding-center.yml'
       - 'netlify/functions/_funding-match.js'
       - 'netlify/functions/_funding-catalog-*.js'
       - 'netlify/functions/funding-match.js'
+      - 'netlify/functions/_recommend.js'
+      - 'netlify/functions/assistant.js'
+      - 'netlify/functions/generate-plan.js'
+      - 'netlify/functions/member-otp-verify.js'
       - 'tests/funding-match.test.js'
+      - 'tests/funding-api.test.js'
+      - 'tests/funding-integration.test.js'
+      - 'assessment.html'
       - 'business-funding.html'
   pull_request:
     branches:
@@ -20,7 +28,14 @@ on:
       - 'netlify/functions/_funding-match.js'
       - 'netlify/functions/_funding-catalog-*.js'
       - 'netlify/functions/funding-match.js'
+      - 'netlify/functions/_recommend.js'
+      - 'netlify/functions/assistant.js'
+      - 'netlify/functions/generate-plan.js'
+      - 'netlify/functions/member-otp-verify.js'
       - 'tests/funding-match.test.js'
+      - 'tests/funding-api.test.js'
+      - 'tests/funding-integration.test.js'
+      - 'assessment.html'
       - 'business-funding.html'
   workflow_dispatch:
 
@@ -37,7 +52,7 @@ jobs:
         with:
           node-version: '20'
       - name: Run funding center tests
-        run: node --test tests/funding-match.test.js
+        run: node --test tests/funding-match.test.js tests/funding-api.test.js tests/funding-integration.test.js
       - name: Verify function can load embedded catalog
         run: |
           node - <<'NODE'

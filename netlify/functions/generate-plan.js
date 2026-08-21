@@ -97,7 +97,7 @@ function journeyTimeline(i, diagnosis) {
 }
 
 function serviceTimeline(recommendedServices) {
-  const immediate = ['business_plan', 'formation', 'documents', 'website', 'federal_contracts', 'state_contracts', 'assistant'];
+  const immediate = ['business_plan', 'formation', 'documents', 'website', 'funding', 'federal_contracts', 'state_contracts', 'assistant'];
   return {
     now: recommendedServices.filter(s => immediate.includes(s.key)).slice(0, 5),
     later: recommendedServices.filter(s => !immediate.includes(s.key)).slice(0, 5),
@@ -349,6 +349,9 @@ exports.handler = async (event) => {
     memberRecord,
     businessName: i.businessName,
     fullName: i.fullName,
+    email: i.email,
+    state: i.state,
+    servicesNeeded: i.servicesNeeded,
     businessStage: diagnosis.businessStage,
     missingItems: diagnosis.missingItems,
     recommendedServices,
