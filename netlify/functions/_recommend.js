@@ -9,12 +9,12 @@ const SERVICE_LIBRARY = {
   business_plan: { label: 'Business Plan', icon: '📄', href: '#results', blurb: 'Your tailored business plan and operating roadmap.' },
   formation: { label: 'Business Formation Guidance', icon: '🏢', href: '#assistant', blurb: 'Entity setup, EIN guidance, licensing readiness, and startup checklist support.' },
   documents: { label: 'Business Documents', icon: '📑', href: '#documents', blurb: 'Generate NDAs, agreements, proposals, invoices, and other business documents.' },
-  website: { label: 'Website Design', icon: '🌐', href: 'https://ai4websitedesign.com', blurb: 'Move from idea to a live customer-facing website.' },
-  marketing: { label: 'Marketing Agent', icon: '📣', href: 'https://ai4-product-purchasing.ai4businesses.org/marketing-agent-offer.html', blurb: 'Create consistent promotional content and customer outreach.' },
-  federal_contracts: { label: 'Federal Contract Leads', icon: '🏛', href: 'https://capgenmkt.aproposgroupllc.com', blurb: 'Federal opportunity intelligence through CapGen, matched to the business capability profile.' },
-  state_contracts: { label: 'State Contract Leads', icon: '🏙', href: 'https://natcorp.aproposgroupllc.com', blurb: 'State and local opportunity intelligence, nationwide, through the National Corporate Contract Exchange.' },
+  website: { label: 'Website Design Advisory', icon: '🌐', href: '/website-builder.html', blurb: 'Use NEBC Website Design Advisory to plan and build a professional customer-facing web presence.' },
+  marketing: { label: 'Marketing Advisory', icon: '📣', href: '#assistant', blurb: 'Use Morgan’s Office for marketing-readiness guidance and next-step planning.' },
+  federal_contracts: { label: 'Federal Contract Opportunities', icon: '🏛', href: 'https://federalcontractorportal.aproposgroupllc.com', blurb: 'Federal opportunity intelligence through the Registered Federal Contractors Portal, matched to the business capability profile.' },
+  state_contracts: { label: 'State & Local Contract Opportunities', icon: '🏙', href: 'https://natcorp.aproposgroupllc.com', blurb: 'State and local opportunity intelligence, nationwide, through the National Corporate Contract Exchange.' },
   funding: { label: 'Business Funding Opportunity Center', icon: '💵', href: '/business-funding.html', blurb: 'Identify relevant controlled business-funding sources and review fit evidence, unresolved qualification questions, and next actions.' },
-  proposal: { label: 'Develop My Proposal', icon: '📝', href: 'https://gcpdc.aproposgroupllc.com', blurb: 'AI-engineered government contract proposals — tailored to the solicitation, matched to your capability profile, built to win.' },
+  proposal: { label: 'Proposal Readiness Guidance', icon: '📝', href: '#assistant', blurb: 'Use Morgan’s Office to review proposal readiness and determine the appropriate current APROPOS contract-response path.' },
   assistant: { label: 'Morgan’s Office', icon: '💬', href: '#assistant', blurb: 'Post-assessment advisory guidance is included automatically.' },
 };
 
@@ -48,8 +48,8 @@ function recommend(input) {
   if (noBasics || wantsEin) { add('formation', 'Because you need the foundation organized before the next stage.'); add('documents', 'Because early business records and documents need to be in place.'); }
   if (wantsWebsite) add('website', 'Because you asked for help getting your website built.');
   if (wantsFunding) add('funding', 'Because you indicated that the business needs funding or capital and should evaluate relevant financing sources.');
-  if (wantsFederal) add('federal_contracts', 'Because you need leads to federal government contract opportunities through CapGen.');
-  if (wantsState) add('state_contracts', 'Because you need leads to state government contract opportunities through the State CapGen sites.');
+  if (wantsFederal) add('federal_contracts', 'Because you need leads to federal government contract opportunities through the Registered Federal Contractors Portal.');
+  if (wantsState) add('state_contracts', 'Because you need leads to state and local government contract opportunities through the National Corporate Contract Exchange.');
   if (wantsContracts) add('proposal', 'Because contract leads become valuable when the business is ready to respond.');
   add('assistant', 'Because Morgan’s post-assessment interview is included automatically.');
 
@@ -63,7 +63,7 @@ function recommend(input) {
   const nextSteps = [
     'Review and save your AI-generated business plan.',
     missing.length ? `Start with the missing foundation item: ${missing[0]}.` : 'Continue to Morgan’s Office for your post-assessment interview.',
-    wantsContracts ? 'Use CapGen for federal leads and the State CapGen sites for state and local contract leads.' : wantsFunding ? 'Use Morgan’s Office to review funding readiness, then open the Business Funding Opportunity Center when source analysis is appropriate.' : 'Use Morgan’s Office to turn this plan into a 7-day action list.',
+    wantsContracts ? 'Use the Registered Federal Contractors Portal for federal opportunities and NAT-CORP for state and local opportunities.' : wantsFunding ? 'Use Morgan’s Office to review funding readiness, then open the Business Funding Opportunity Center when source analysis is appropriate.' : 'Use Morgan’s Office to turn this plan into a 7-day action list.',
   ];
 
   return { businessStage, missingItems: missing.slice(0, 8), recommendedServices, nextSteps };
