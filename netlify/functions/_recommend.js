@@ -12,7 +12,7 @@ const SERVICE_LIBRARY = {
   website: { label: 'Website Design', icon: '🌐', href: 'https://ai4websitedesign.com', blurb: 'Move from idea to a live customer-facing website.' },
   marketing: { label: 'Marketing Agent', icon: '📣', href: 'https://ai4-product-purchasing.ai4businesses.org/marketing-agent-offer.html', blurb: 'Create consistent promotional content and customer outreach.' },
   federal_contracts: { label: 'Federal Contract Leads', icon: '🏛', href: 'https://capgenmkt.aproposgroupllc.com', blurb: 'Federal opportunity intelligence through CapGen, matched to the business capability profile.' },
-  state_contracts: { label: 'State Contract Leads', icon: '🏙', href: 'https://ngcc.aproposgroupllc.com', blurb: 'State and local opportunity intelligence, nationwide, through the National Corporate Contract Exchange.' },
+  state_contracts: { label: 'State Contract Leads', icon: '🏙', href: 'https://natcorp.aproposgroupllc.com', blurb: 'State and local opportunity intelligence, nationwide, through the National Corporate Contract Exchange.' },
   funding: { label: 'Business Funding Opportunity Center', icon: '💵', href: '/business-funding.html', blurb: 'Identify relevant controlled business-funding sources and review fit evidence, unresolved qualification questions, and next actions.' },
   proposal: { label: 'Develop My Proposal', icon: '📝', href: 'https://gcpdc.aproposgroupllc.com', blurb: 'AI-engineered government contract proposals — tailored to the solicitation, matched to your capability profile, built to win.' },
   assistant: { label: 'Morgan’s Office', icon: '💬', href: '#assistant', blurb: 'Post-assessment advisory guidance is included automatically.' },
