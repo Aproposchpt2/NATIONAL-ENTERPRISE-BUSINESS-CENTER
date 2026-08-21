@@ -1,2 +1,0 @@
-Morgan Funding remediation validation trigger.
-Implementation source remains netlify/functions/assistant.js.
