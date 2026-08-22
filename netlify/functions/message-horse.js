@@ -28,7 +28,7 @@ const ARTICLE_THEMES = [
     property: 'APROPOS Marketing Marketplace',
     articleTitle: 'Federal vs. State and Local Government Contracts',
     canonicalUrl: `${MARKETPLACE}/articles/federal-vs-state-local-government-contracts/`,
-    brief: 'Explain one useful difference between federal contracting and distributed state/local procurement, then invite readers to the full Marketplace article.'
+    brief: 'Explain one useful difference between federal contracting and distributed state/local procurement, then invite readers to the full article.'
   },
   {
     key: 'article-sled-contracting',
@@ -95,15 +95,15 @@ const PROPERTY_THEMES = [
   },
   {
     key: 'nevada-business-readiness',
-    property: 'Nevada Enterprise Business Center',
+    property: 'National Enterprise Business Center',
     url: 'https://nebc.aproposgroupllc.com/guides/',
-    brief: 'Explain business readiness as the operating, financial, planning and management evidence needed to take the next growth action, and encourage structured self-assessment before pursuing funding or expansion.'
+    brief: 'Explain Nevada-focused business readiness as the operating, financial, planning and management evidence needed to take the next growth action, and encourage structured self-assessment before pursuing funding or expansion.'
   },
   {
     key: 'apropos-connected-ecosystem',
     property: 'Apropos Group LLC',
     url: CORPORATE,
-    brief: 'Introduce the APROPOS ecosystem as a connected set of focused business and procurement tools: corporate AI procurement modernization, public opportunity education, federal contractor matching, state/local SLED matching, and Nevada business readiness.'
+    brief: 'Introduce the APROPOS ecosystem as a connected set of focused business and procurement tools: corporate AI procurement modernization, public opportunity education, federal contractor matching, state/local SLED matching, and Nevada-focused business readiness through NEBC.'
   }
 ];
 

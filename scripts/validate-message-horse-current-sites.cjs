@@ -61,7 +61,8 @@ for (const token of retired) {
 if (!source.includes('Apropos Group LLC')) failures.push('missing current parent organization identity');
 if (!source.includes('Registered Federal Contractors Portal')) failures.push('missing RFCP identity');
 if (!source.includes('National Corporate Contract Exchange')) failures.push('missing NAT-CORP identity');
-if (!source.includes('Nevada Enterprise Business Center')) failures.push('missing NEBC identity');
+if (!source.includes('National Enterprise Business Center')) failures.push('missing canonical NEBC identity');
+if (source.includes('Nevada Enterprise Business Center')) failures.push('noncanonical NEBC entity name remains in Message Horse');
 if (!source.includes('APROPOS Marketing Marketplace')) failures.push('missing Marketplace identity');
 if (!source.includes('do not promise contract awards, funding approval, rankings, or guaranteed outcomes')) failures.push('missing controlled-claims prompt safeguard');
 if (!source.includes('Do not imply government affiliation or endorsement')) failures.push('missing government-affiliation safeguard');
@@ -73,4 +74,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log(`[message-horse-current-sites] PASS — ${articleSlugs.length} canonical Marketplace article themes, UTM social attribution, current five-property rotation, scheduling, mode controls, and claim safeguards verified.`);
+console.log(`[message-horse-current-sites] PASS — ${articleSlugs.length} canonical Marketplace article themes, UTM social attribution, current five-property rotation, canonical NEBC identity, scheduling, mode controls, and claim safeguards verified.`);
