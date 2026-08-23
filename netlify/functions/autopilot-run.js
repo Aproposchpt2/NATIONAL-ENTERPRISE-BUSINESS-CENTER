@@ -9,9 +9,6 @@
 //   ?admin_key=<key>&all=1&dry=1           → preview all active clients
 
 const FB_API = 'https://graph.facebook.com/v21.0';
-const MODEL  = process.env.MESSAGE_MODEL || 'claude-sonnet-4-6';
-const SUPA   = process.env.SUPABASE_URL;
-const SKEY   = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const CURRENT_PUBLIC_HOSTS = new Set([
   'marketplace.aproposgroupllc.com',
@@ -28,6 +25,7 @@ const json = (obj, status = 200) =>
   new Response(JSON.stringify(obj, null, 2), { status, headers: { 'Content-Type': 'application/json' } });
 
 function safeUrl(req) { try { return new URL(req.url); } catch (_) { return null; } }
+function env(name) { return Netlify.env.get(name); }
 
 function approvedPublicLink(value) {
   if (!value) return true;
@@ -48,6 +46,8 @@ async function invocationKind(req) {
 
 // ---- Supabase REST (Node-18 safe; no supabase-js / no WebSocket) ----
 async function supa(path, opts = {}) {
+  const SUPA = env('SUPABASE_URL');
+  const SKEY = env('SUPABASE_SERVICE_ROLE_KEY');
   const r = await fetch(`${SUPA}/rest/v1/${path}`, {
     ...opts,
     headers: {
@@ -86,7 +86,9 @@ async function generateMessage(client, theme) {
   const link = theme.url || client.default_link || '';
   if (!approvedPublicLink(link)) throw new Error(`Blocked non-current public destination: ${link || '(empty)'}`);
   const tail = link ? `\n\nLearn more: ${link}` : '';
-  if (!process.env.ANTHROPIC_API_KEY) return `${theme.brief}${tail}`.trim();
+  const anthropicKey = env('ANTHROPIC_API_KEY');
+  if (!anthropicKey) return `${theme.brief}${tail}`.trim();
+  const model = env('MESSAGE_MODEL') || 'claude-sonnet-4-6';
 
   const prompt = `You write today's Facebook post for "${client.business_name}".
 About the business: ${client.about || client.business_name}
@@ -103,8 +105,8 @@ Write ONE Facebook post:
 
   const r = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
-    headers: { 'content-type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
-    body: JSON.stringify({ model: MODEL, max_tokens: 700, messages: [{ role: 'user', content: prompt }] }),
+    headers: { 'content-type': 'application/json', 'x-api-key': anthropicKey, 'anthropic-version': '2023-06-01' },
+    body: JSON.stringify({ model, max_tokens: 700, messages: [{ role: 'user', content: prompt }] }),
   });
   const data = await r.json();
   if (!r.ok) throw new Error(data?.error?.message || 'AI generation failed');
@@ -145,8 +147,8 @@ async function postToFacebook(message, pageId, token) {
 }
 
 async function emailClient(client, message, fb) {
-  const key = process.env.RESEND_API_KEY, from = process.env.RESEND_FROM_EMAIL;
-  const to = client.owner_email || process.env.MESSAGE_RECIPIENT;
+  const key = env('RESEND_API_KEY'), from = env('RESEND_FROM_EMAIL');
+  const to = client.owner_email || env('MESSAGE_RECIPIENT');
   if (!key || !from || !to) return { emailed: false, reason: 'Resend env or owner_email missing' };
   const status = fb && fb.posted ? 'Already published to your Page.' : 'Copy/paste this to your Page.';
   const html = `<div style="font-family:Arial,sans-serif;max-width:640px;margin:0 auto;padding:24px;color:#10241c">
@@ -166,13 +168,16 @@ async function emailClient(client, message, fb) {
 export const config = { schedule: '0 * * * *' }; // hourly; each client posts on its own hour
 
 export default async (req) => {
+  const SUPA = env('SUPABASE_URL');
+  const SKEY = env('SUPABASE_SERVICE_ROLE_KEY');
   if (!SUPA || !SKEY) return json({ error: 'SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY not set' }, 500);
 
   const url = safeUrl(req);
   const invocation = await invocationKind(req);
   if (invocation === 'manual') {
-    if (!process.env.AUTOPILOT_ADMIN_KEY) return json({ error: 'AUTOPILOT_ADMIN_KEY not set on site' }, 500);
-    if (url?.searchParams.get('admin_key') !== process.env.AUTOPILOT_ADMIN_KEY) return json({ error: 'unauthorized' }, 401);
+    const adminKey = env('AUTOPILOT_ADMIN_KEY');
+    if (!adminKey) return json({ error: 'AUTOPILOT_ADMIN_KEY not set on site' }, 500);
+    if (url?.searchParams.get('admin_key') !== adminKey) return json({ error: 'unauthorized' }, 401);
   }
 
   const dry       = url?.searchParams.get('dry') === '1';
