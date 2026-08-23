@@ -3,24 +3,51 @@
 // hasn't posted yet today, generate an on-brand post and publish to THEIR page.
 // Same proven engine that runs the in-house Message Horse, generalized per client.
 //
-// Manual testing (GET the function URL):
-//   ?dry=1                 → preview posts for due clients, publish nothing
-//   ?client=<uuid>         → run just that one client now (ignores the hour gate)
-//   ?all=1                 → consider every active client (great with ?dry=1)
-//   combine: ?client=<id>&dry=1
+// Scheduled publishing is automatic. Manual controls require AUTOPILOT_ADMIN_KEY:
+//   ?admin_key=<key>&dry=1                 → preview due clients, publish nothing
+//   ?admin_key=<key>&client=<uuid>&dry=1   → preview one client now
+//   ?admin_key=<key>&all=1&dry=1           → preview all active clients
 
 const FB_API = 'https://graph.facebook.com/v21.0';
-const MODEL  = process.env.MESSAGE_MODEL || 'claude-sonnet-4-6';
-const SUPA   = process.env.SUPABASE_URL;
-const SKEY   = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+const CURRENT_PUBLIC_HOSTS = new Set([
+  'marketplace.aproposgroupllc.com',
+  'federalcontractorportal.aproposgroupllc.com',
+  'natcorp.aproposgroupllc.com',
+  'nebc.aproposgroupllc.com',
+  'ai4businesses.org',
+  'ai4websitedesign.com',
+  'espanola.ai4websitedesign.com',
+  'aproposgroupllc.com',
+]);
 
 const json = (obj, status = 200) =>
   new Response(JSON.stringify(obj, null, 2), { status, headers: { 'Content-Type': 'application/json' } });
 
 function safeUrl(req) { try { return new URL(req.url); } catch (_) { return null; } }
+function env(name) { return Netlify.env.get(name); }
+
+function approvedPublicLink(value) {
+  if (!value) return true;
+  try {
+    const u = new URL(value);
+    return u.protocol === 'https:' && CURRENT_PUBLIC_HOSTS.has(u.hostname.toLowerCase());
+  } catch (_) { return false; }
+}
+
+async function invocationKind(req) {
+  if (req.method !== 'POST') return 'manual';
+  try {
+    const body = await req.clone().json();
+    if (body && typeof body.next_run === 'string') return 'scheduled';
+  } catch (_) {}
+  return 'manual';
+}
 
 // ---- Supabase REST (Node-18 safe; no supabase-js / no WebSocket) ----
 async function supa(path, opts = {}) {
+  const SUPA = env('SUPABASE_URL');
+  const SKEY = env('SUPABASE_SERVICE_ROLE_KEY');
   const r = await fetch(`${SUPA}/rest/v1/${path}`, {
     ...opts,
     headers: {
@@ -57,8 +84,11 @@ function pickTheme(client) {
 // ---- AI generation (keyless fallback keeps it from ever breaking) ----
 async function generateMessage(client, theme) {
   const link = theme.url || client.default_link || '';
+  if (!approvedPublicLink(link)) throw new Error(`Blocked non-current public destination: ${link || '(empty)'}`);
   const tail = link ? `\n\nLearn more: ${link}` : '';
-  if (!process.env.ANTHROPIC_API_KEY) return `${theme.brief}${tail}`.trim();
+  const anthropicKey = env('ANTHROPIC_API_KEY');
+  if (!anthropicKey) return `${theme.brief}${tail}`.trim();
+  const model = env('MESSAGE_MODEL') || 'claude-sonnet-4-6';
 
   const prompt = `You write today's Facebook post for "${client.business_name}".
 About the business: ${client.about || client.business_name}
@@ -68,14 +98,15 @@ Today's angle: ${theme.brief}
 Write ONE Facebook post:
 - A strong first-line hook that stops the scroll.
 - 1-3 short paragraphs of real value (what it does FOR the reader, not buzzwords).
+- Use only the current service described in Today's angle. Do not mention retired APROPOS brands or old domains.
 - A clear call to action ending with the link ${link}
 - At most 1-2 relevant hashtags (or none). One or two emoji max, only if natural.
 - Output ONLY the post text, ready to publish. No preamble, no surrounding quotes.`;
 
   const r = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
-    headers: { 'content-type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
-    body: JSON.stringify({ model: MODEL, max_tokens: 700, messages: [{ role: 'user', content: prompt }] }),
+    headers: { 'content-type': 'application/json', 'x-api-key': anthropicKey, 'anthropic-version': '2023-06-01' },
+    body: JSON.stringify({ model, max_tokens: 700, messages: [{ role: 'user', content: prompt }] }),
   });
   const data = await r.json();
   if (!r.ok) throw new Error(data?.error?.message || 'AI generation failed');
@@ -116,8 +147,8 @@ async function postToFacebook(message, pageId, token) {
 }
 
 async function emailClient(client, message, fb) {
-  const key = process.env.RESEND_API_KEY, from = process.env.RESEND_FROM_EMAIL;
-  const to = client.owner_email || process.env.MESSAGE_RECIPIENT;
+  const key = env('RESEND_API_KEY'), from = env('RESEND_FROM_EMAIL');
+  const to = client.owner_email || env('MESSAGE_RECIPIENT');
   if (!key || !from || !to) return { emailed: false, reason: 'Resend env or owner_email missing' };
   const status = fb && fb.posted ? 'Already published to your Page.' : 'Copy/paste this to your Page.';
   const html = `<div style="font-family:Arial,sans-serif;max-width:640px;margin:0 auto;padding:24px;color:#10241c">
@@ -137,9 +168,18 @@ async function emailClient(client, message, fb) {
 export const config = { schedule: '0 * * * *' }; // hourly; each client posts on its own hour
 
 export default async (req) => {
+  const SUPA = env('SUPABASE_URL');
+  const SKEY = env('SUPABASE_SERVICE_ROLE_KEY');
   if (!SUPA || !SKEY) return json({ error: 'SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY not set' }, 500);
 
   const url = safeUrl(req);
+  const invocation = await invocationKind(req);
+  if (invocation === 'manual') {
+    const adminKey = env('AUTOPILOT_ADMIN_KEY');
+    if (!adminKey) return json({ error: 'AUTOPILOT_ADMIN_KEY not set on site' }, 500);
+    if (url?.searchParams.get('admin_key') !== adminKey) return json({ error: 'unauthorized' }, 401);
+  }
+
   const dry       = url?.searchParams.get('dry') === '1';
   const oneClient = url?.searchParams.get('client') || null;
   const all       = url?.searchParams.get('all') === '1';
@@ -155,7 +195,7 @@ export default async (req) => {
   clients = Array.isArray(clients) ? clients : [];
 
   const due = clients.filter(c => {
-    if (oneClient || all) return true;                                   // explicit run / preview-all
+    if (oneClient || all) return true;                                   // authorized explicit run / preview-all
     if ((c.mode || 'post') === 'paused' || c.status !== 'active') return false;
     if (c.post_hour_utc !== nowHour) return false;                       // not this client's hour
     if (c.last_run_at && String(c.last_run_at).slice(0, 10) === today) return false; // already today
@@ -165,12 +205,23 @@ export default async (req) => {
   const results = [];
   for (const c of due) {
     const theme = pickTheme(c);
+    const destination = theme.url || c.default_link || '';
+    const mode = dry ? 'preview' : (c.mode || 'post');
+    const res = { client: c.business_name, id: c.id, theme: theme.key, link: destination, mode };
+
+    if (!approvedPublicLink(destination)) {
+      res.error = `Blocked non-current public destination: ${destination || '(empty)'}`;
+      results.push(res);
+      continue;
+    }
+
     let message;
     try { message = await generateMessage(c, theme); }
-    catch (e) { message = `${theme.brief}${theme.url ? '\n\nLearn more: ' + theme.url : ''}`.trim(); }
-
-    const mode = dry ? 'preview' : (c.mode || 'post');
-    const res = { client: c.business_name, id: c.id, theme: theme.key, link: theme.url, mode };
+    catch (e) {
+      res.error = String(e.message || e);
+      results.push(res);
+      continue;
+    }
 
     if (!dry && (mode === 'post' || mode === 'both')) res.facebook = await postToFacebook(message, c.page_id, c.page_token);
     if (!dry && (mode === 'email' || mode === 'both')) res.email = await emailClient(c, message, res.facebook);
@@ -186,5 +237,5 @@ export default async (req) => {
     results.push(res);
   }
 
-  return json({ ran: new Date().toISOString(), hour_utc: nowHour, dry, considered: clients.length, posted: results.length, results });
+  return json({ ran: new Date().toISOString(), hour_utc: nowHour, invocation, dry, considered: clients.length, posted: results.length, results });
 };
