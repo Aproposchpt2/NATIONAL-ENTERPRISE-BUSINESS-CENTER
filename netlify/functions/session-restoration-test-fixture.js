@@ -1,7 +1,7 @@
 'use strict';
 
 // VALIDATION-ONLY deploy-preview fixture. Fixed synthetic rows only.
-// This function is never intended for merge into the implementation branch.
+// Rebuilt after non-production SUPABASE_URL remediation; never merge into implementation.
 const SUPA = process.env.SUPABASE_URL;
 const SKEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '';
 const CORS = { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' };
