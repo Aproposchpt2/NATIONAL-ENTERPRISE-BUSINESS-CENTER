@@ -36,10 +36,10 @@ function countMessage(messages, exact){ return (messages||[]).filter(m=>m.conten
   try{
     await waitForFixture();
     const setup=await postUrl(FIXTURE,{operation:'setup'});
+    evidence.fixtureSetup={status:setup.status,ok:setup.data?.ok===true,error:setup.data?.error||null,diagnostic:setup.data?.diagnostic||null};
     if(setup.status!==200||!setup.data?.ok) throw new Error('fixture setup failed');
     const {codes,emails,sessions}=setup.data;
 
-    // SR-A + SR-B: first session persists through deployed assistant, then restores after an independent authenticated request.
     const abUser='SR-AB first-session marker';
     const abSave=await post('assistant',{messages:[{role:'user',content:abUser}],stage:1,sessionId:sessions.ab,userEmail:emails.ab,firstName:'SR',context:'Synthetic SR-A/B validation. Business: SR AB Test Co. State: NV.'});
     const abVerify=await post('member-otp-verify',{email:emails.ab,code:codes.ab});
@@ -50,14 +50,12 @@ function countMessage(messages, exact){ return (messages||[]).filter(m=>m.conten
     evidence.scenarios['SR-B']={pass:srB,verifyStatus:abVerify.status,restoreStatus:abRest?.status,sessionMatch:abRest?.session?.sessionId===sessions.ab,messageRestored:!!abRest?.session?.messages?.some(m=>m.content===abUser),browserStateRequired:false};
     if(!srA||!srB) failed=true;
 
-    // SR-C: independent client context restores a pre-existing server session.
     const cVerify=await post('member-otp-verify',{email:emails.c,code:codes.c});
     const cRest=restoration(cVerify.data);
     const srC=cVerify.status===200&&cRest?.status==='restored'&&cRest.session?.sessionId===sessions.c&&cRest.session.messages?.[0]?.content==='SR-C prior message';
     evidence.scenarios['SR-C']={pass:srC,verifyStatus:cVerify.status,restoreStatus:cRest?.status,sessionMatch:cRest?.session?.sessionId===sessions.c,priorMessage:cRest?.session?.messages?.[0]?.content||null};
     if(!srC) failed=true;
 
-    // SR-D: member B has no session while member A has private history; B must not receive A's session.
     const dbVerify=await post('member-otp-verify',{email:emails.db,code:codes.db});
     const dbRest=restoration(dbVerify.data);
     const dbText=JSON.stringify(dbVerify.data||{});
@@ -65,7 +63,6 @@ function countMessage(messages, exact){ return (messages||[]).filter(m=>m.conten
     evidence.scenarios['SR-D']={pass:srD,verifyStatus:dbVerify.status,restoreStatus:dbRest?.status,crossMemberHistoryObserved:dbText.includes('Member A')||dbText.includes('SR-DA')};
     if(!srD) failed=true;
 
-    // SR-E: restore, continue on same session, refresh only synthetic OTP, restore again with old+new history exactly once.
     const eVerify1=await post('member-otp-verify',{email:emails.e,code:codes.e});
     const eRest1=restoration(eVerify1.data);
     const before=eRest1?.session?.messages||[];
@@ -79,7 +76,6 @@ function countMessage(messages, exact){ return (messages||[]).filter(m=>m.conten
     evidence.scenarios['SR-E']={pass:srE,initialCount:before.length,finalCount:after.length,sessionStable:eRest2?.session?.sessionId===sessions.e,originalCount:countMessage(after,'SR-E original message'),newUserCount:countMessage(after,newUser),provider:eSend.data?.provider,mode:eSend.data?.mode,closing:!!eSend.data?.reply?.trim().endsWith(EXPECTED_CLOSE)};
     if(!srE) failed=true;
 
-    // SR-F: authenticated member with no session starts cleanly.
     const fVerify=await post('member-otp-verify',{email:emails.f,code:codes.f});
     const fRest=restoration(fVerify.data);
     const srF=fVerify.status===200&&fVerify.data?.ok===true&&fRest?.status==='none'&&fRest?.session==null;
