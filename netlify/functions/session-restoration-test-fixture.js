@@ -38,7 +38,7 @@ async function cleanup(){
 async function member(key){
   const email=EMAILS[key];
   const row={full_name:`SR ${key.toUpperCase()} Tester`,email,business_name:`SR ${key.toUpperCase()} Test Co`,state:'NV',business_stage:'GROW',readiness_score:70,business_status:['registered'],services_needed:['funding'],agent_context:`Synthetic SR-${key.toUpperCase()} validation member`,subscription_status:'active',login_code:CODES[key],login_code_expires:new Date(Date.now()+60*60*1000).toISOString()};
-  await req('biz_center_members',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(row)});
+  await req('biz_center_members',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify(row)});
 }
 async function refresh(key){
   if(!keys.includes(key)) throw new Error('unknown fixture key');
@@ -47,7 +47,7 @@ async function refresh(key){
 async function session(key, marker){
   if(!SESSIONS[key]) return;
   const row={id:SESSIONS[key],user_email:EMAILS[key],stage:'1',messages:[{role:'user',content:`${marker} prior message`},{role:'assistant',content:`${marker} prior reply. Do you have any further questions for me?`}],updated_at:new Date().toISOString()};
-  await req('morgan_sessions',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(row)});
+  await req('morgan_sessions',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify(row)});
 }
 
 exports.handler=async(event)=>{
