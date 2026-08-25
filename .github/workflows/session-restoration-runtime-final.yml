@@ -7,6 +7,7 @@ on:
       - main
     paths:
       - '.github/workflows/session-restoration-runtime-final.yml'
+      - 'validation/session-restoration-credential-gate.js'
       - 'validation/session-restoration-runtime-final.js'
       - 'netlify/functions/session-restoration-test-fixture.js'
 
@@ -22,13 +23,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: Execute SR-A through SR-F against implementation Preview 39
-        run: node validation/session-restoration-runtime-final.js
-      - name: Upload runtime acceptance evidence
+      - name: Run credential gate and SR-A through SR-F if authorized
+        run: node validation/session-restoration-credential-gate.js
+      - name: Upload credential and runtime evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: nebc-morgan-session-restoration-runtime-acceptance
-          path: validation-artifacts/session-restoration-runtime-final.json
+          path: validation-artifacts/*.json
           if-no-files-found: error
           retention-days: 30
