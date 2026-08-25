@@ -1,10 +1,11 @@
 'use strict';
 
 // VALIDATION-ONLY deploy-preview fixture. Fixed synthetic rows only.
-// Rebuilt after non-production SUPABASE_URL remediation; never merge into implementation.
+// Never merge into implementation. Credential diagnostics expose booleans/known claims only.
 const SUPA = process.env.SUPABASE_URL;
 const SKEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '';
 const CORS = { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' };
+const TARGET_REF = 'judislfknmhofcgzyozc';
 const EMAILS = {
   ab: 'nebc.sr.ab.p39.20260825@example.invalid',
   c: 'nebc.sr.c.p39.20260825@example.invalid',
@@ -24,11 +25,41 @@ const keys = Object.keys(EMAILS);
 
 function headers(){ return { apikey:SKEY, Authorization:`Bearer ${SKEY}`, 'Content-Type':'application/json' }; }
 function tableLabel(path){ return String(path).startsWith('morgan_sessions') ? 'morgan_sessions' : String(path).startsWith('biz_center_members') ? 'biz_center_members' : 'unknown'; }
+function decodeJwtPayload(value){
+  if (typeof value !== 'string' || value.split('.').length !== 3) return null;
+  try {
+    const part = value.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
+    const padded = part + '='.repeat((4 - (part.length % 4)) % 4);
+    return JSON.parse(Buffer.from(padded, 'base64').toString('utf8'));
+  } catch (_) { return null; }
+}
+function credentialDiagnostic(){
+  const present = typeof SKEY === 'string' && SKEY.length > 0;
+  const empty = !present;
+  const placeholder = present && (/^\*+$/.test(SKEY) || SKEY.includes('****************') || SKEY === '[REDACTED]' || SKEY === 'REDACTED');
+  const jwt = decodeJwtPayload(SKEY);
+  const jwtLike = Boolean(jwt);
+  const newSecretFormat = present && SKEY.startsWith('sb_secret_');
+  return {
+    variablePresent: present,
+    variableEmpty: empty,
+    maskedOrPlaceholder: placeholder,
+    availableToServerFunction: present,
+    recognizableCredentialFormat: jwtLike || newSecretFormat,
+    jwtServiceRoleClaim: jwtLike ? jwt.role === 'service_role' : null,
+    jwtProjectRefMatchesTarget: jwtLike && typeof jwt.ref === 'string' ? jwt.ref === TARGET_REF : null,
+    jwtExpired: jwtLike && Number.isFinite(Number(jwt.exp)) ? Number(jwt.exp) * 1000 <= Date.now() : null,
+  };
+}
 async function req(path, opts={}){
   const r = await fetch(`${SUPA.replace(/\/$/,'')}/rest/v1/${path}`, { ...opts, headers:{...headers(), ...(opts.headers||{})} });
   const text = await r.text();
   if(!r.ok) throw new Error(`${tableLabel(path)}:${r.status}`);
   return text ? JSON.parse(text) : null;
+}
+async function authProbe(table){
+  const r = await fetch(`${SUPA.replace(/\/$/,'')}/rest/v1/${table}?select=*&limit=0`, { headers: headers() });
+  return { table, status: r.status, authorized: r.ok };
 }
 async function cleanup(){
   for(const email of Object.values(EMAILS)){
@@ -53,8 +84,19 @@ async function session(key, marker){
 
 exports.handler=async(event)=>{
   if(event.httpMethod!=='POST') return {statusCode:405,headers:CORS,body:JSON.stringify({error:'POST only'})};
-  if(!SUPA||!SKEY) return {statusCode:503,headers:CORS,body:JSON.stringify({error:'fixture unavailable'})};
   let body={}; try{body=JSON.parse(event.body||'{}')}catch{return {statusCode:400,headers:CORS,body:JSON.stringify({error:'bad request'})}}
+  if(body.operation==='diagnose'){
+    const credential = credentialDiagnostic();
+    let urlParse = false;
+    try { new URL(SUPA || ''); urlParse = true; } catch (_) {}
+    const result = { ok:true, urlParse, credential, targetProjectRef:TARGET_REF, probes:[] };
+    if (urlParse && credential.variablePresent && !credential.maskedOrPlaceholder) {
+      result.probes.push(await authProbe('biz_center_members').catch(()=>({table:'biz_center_members',status:0,authorized:false})));
+      result.probes.push(await authProbe('morgan_sessions').catch(()=>({table:'morgan_sessions',status:0,authorized:false})));
+    }
+    return {statusCode:200,headers:CORS,body:JSON.stringify(result)};
+  }
+  if(!SUPA||!SKEY) return {statusCode:503,headers:CORS,body:JSON.stringify({error:'fixture unavailable'})};
   try{
     if(body.operation==='cleanup'){
       await cleanup();
