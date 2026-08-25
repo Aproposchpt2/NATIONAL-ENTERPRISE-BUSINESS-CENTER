@@ -56,5 +56,9 @@
     rememberSessionId(sessionId);
   }
 
+  // Normalize any legacy/non-UUID browser value before the page's existing
+  // Morgan bootstrap reads it. This makes new server persistence compatible
+  // with the existing UUID primary key without changing the database schema.
+  getBrowserSessionId();
   root.MorganSession = { normalizeMessages, read, cache, rememberSessionId, getBrowserSessionId };
 })(window);
