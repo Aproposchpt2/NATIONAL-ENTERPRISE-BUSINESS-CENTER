@@ -3,7 +3,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-const TARGET = 'https://deploy-preview-39--nat-enterprise-business-center.netlify.app';
+const TARGET = 'https://deploy-preview-40--nat-enterprise-business-center.netlify.app';
 const FIXTURE = 'https://deploy-preview-40--nat-enterprise-business-center.netlify.app/.netlify/functions/session-restoration-test-fixture';
 const EXPECTED_CLOSE = 'Do you have any further questions for me?';
 const IMPL_COMMIT = 'bd3a09e2676d3fe628c4e11e9f9971195b19ecf4';
@@ -72,8 +72,8 @@ function countMessage(messages, exact){ return (messages||[]).filter(m=>m.conten
     const eVerify2=await post('member-otp-verify',{email:emails.e,code:codes.e});
     const eRest2=restoration(eVerify2.data);
     const after=eRest2?.session?.messages||[];
-    const srE=eVerify1.status===200&&eRest1?.status==='restored'&&eSend.status===200&&eSend.data?.mode==='ai'&&refresh.status===200&&eVerify2.status===200&&eRest2?.status==='restored'&&eRest2.session?.sessionId===sessions.e&&countMessage(after,'SR-E original message')===1&&countMessage(after,newUser)===1&&after.length===before.length+2;
-    evidence.scenarios['SR-E']={pass:srE,initialCount:before.length,finalCount:after.length,sessionStable:eRest2?.session?.sessionId===sessions.e,originalCount:countMessage(after,'SR-E original message'),newUserCount:countMessage(after,newUser),provider:eSend.data?.provider,mode:eSend.data?.mode,closing:!!eSend.data?.reply?.trim().endsWith(EXPECTED_CLOSE)};
+    const srE=eVerify1.status===200&&eRest1?.status==='restored'&&eSend.status===200&&eSend.data?.mode==='ai'&&refresh.status===200&&eVerify2.status===200&&eRest2?.status==='restored'&&eRest2.session?.sessionId===sessions.e&&countMessage(after,'SR-E prior message')===1&&countMessage(after,newUser)===1&&after.length===before.length+2;
+    evidence.scenarios['SR-E']={pass:srE,initialCount:before.length,finalCount:after.length,sessionStable:eRest2?.session?.sessionId===sessions.e,originalCount:countMessage(after,'SR-E prior message'),newUserCount:countMessage(after,newUser),provider:eSend.data?.provider,mode:eSend.data?.mode,closing:!!eSend.data?.reply?.trim().endsWith(EXPECTED_CLOSE)};
     if(!srE) failed=true;
 
     const fVerify=await post('member-otp-verify',{email:emails.f,code:codes.f});
