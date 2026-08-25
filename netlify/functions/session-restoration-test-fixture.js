@@ -40,6 +40,10 @@ async function member(key){
   const row={full_name:`SR ${key.toUpperCase()} Tester`,email,business_name:`SR ${key.toUpperCase()} Test Co`,state:'NV',business_stage:'GROW',readiness_score:70,business_status:['registered'],services_needed:['funding'],agent_context:`Synthetic SR-${key.toUpperCase()} validation member`,subscription_status:'active',login_code:CODES[key],login_code_expires:new Date(Date.now()+60*60*1000).toISOString()};
   await req('biz_center_members',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(row)});
 }
+async function refresh(key){
+  if(!keys.includes(key)) throw new Error('unknown fixture key');
+  await req(`biz_center_members?email=eq.${encodeURIComponent(EMAILS[key])}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({login_code:CODES[key],login_code_expires:new Date(Date.now()+60*60*1000).toISOString()})});
+}
 async function session(key, marker){
   if(!SESSIONS[key]) return;
   const row={id:SESSIONS[key],user_email:EMAILS[key],stage:'1',messages:[{role:'user',content:`${marker} prior message`},{role:'assistant',content:`${marker} prior reply. Do you have any further questions for me?`}],updated_at:new Date().toISOString()};
@@ -50,16 +54,24 @@ exports.handler=async(event)=>{
   if(event.httpMethod!=='POST') return {statusCode:405,headers:CORS,body:JSON.stringify({error:'POST only'})};
   if(!SUPA||!SKEY) return {statusCode:503,headers:CORS,body:JSON.stringify({error:'fixture unavailable'})};
   let body={}; try{body=JSON.parse(event.body||'{}')}catch{return {statusCode:400,headers:CORS,body:JSON.stringify({error:'bad request'})}}
-  if(body.operation==='cleanup'){
+  try{
+    if(body.operation==='cleanup'){
+      await cleanup();
+      return {statusCode:200,headers:CORS,body:JSON.stringify({ok:true,operation:'cleanup'})};
+    }
+    if(body.operation==='refresh'){
+      await refresh(String(body.key||''));
+      return {statusCode:200,headers:CORS,body:JSON.stringify({ok:true,operation:'refresh'})};
+    }
+    if(body.operation!=='setup') return {statusCode:400,headers:CORS,body:JSON.stringify({error:'unsupported operation'})};
     await cleanup();
-    return {statusCode:200,headers:CORS,body:JSON.stringify({ok:true,operation:'cleanup'})};
+    for(const key of keys) await member(key);
+    // AB intentionally starts without a session so SR-A proves persistence through assistant.js.
+    await session('c','SR-C');
+    await session('da','SR-DA');
+    await session('e','SR-E');
+    return {statusCode:200,headers:CORS,body:JSON.stringify({ok:true,operation:'setup',codes:CODES,emails:EMAILS,sessions:SESSIONS})};
+  }catch(_){
+    return {statusCode:500,headers:CORS,body:JSON.stringify({error:'fixture operation failed'})};
   }
-  if(body.operation!=='setup') return {statusCode:400,headers:CORS,body:JSON.stringify({error:'unsupported operation'})};
-  await cleanup();
-  for(const key of keys) await member(key);
-  await session('ab','SR-AB');
-  await session('c','SR-C');
-  await session('da','SR-DA');
-  await session('e','SR-E');
-  return {statusCode:200,headers:CORS,body:JSON.stringify({ok:true,operation:'setup',codes:CODES,emails:EMAILS,sessions:SESSIONS})};
 };
