@@ -1,7 +1,9 @@
 'use strict';
 
-// VALIDATION-ONLY deploy-preview fixture. Fixed synthetic rows only.
+// VALIDATION-ONLY deploy-preview fixture. Fixed synthetic member identities only.
+// Session UUIDs are generated internally per fixture runtime to avoid collisions.
 // Never merge into implementation. Credential diagnostics expose booleans/known claims only.
+const { randomUUID } = require('node:crypto');
 const SUPA = process.env.SUPABASE_URL;
 const SKEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '';
 const CORS = { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' };
@@ -15,14 +17,12 @@ const EMAILS = {
   f: 'nebc.sr.f.p39.20260825@example.invalid',
 };
 const CODES = { ab:'510001', c:'510002', da:'510003', db:'510004', e:'510005', f:'510006' };
-const SESSIONS = {
-  ab:'30000000-0000-4000-8000-000000000001',
-  c:'30000000-0000-4000-8000-000000000002',
-  da:'30000000-0000-4000-8000-000000000003',
-  e:'30000000-0000-4000-8000-000000000005',
-};
+let SESSIONS = makeSessions();
 const keys = Object.keys(EMAILS);
 
+function makeSessions(){
+  return { ab:randomUUID(), c:randomUUID(), da:randomUUID(), e:randomUUID() };
+}
 function headers(){ return { apikey:SKEY, Authorization:`Bearer ${SKEY}`, 'Content-Type':'application/json' }; }
 function tableLabel(path){ return String(path).startsWith('morgan_sessions') ? 'morgan_sessions' : String(path).startsWith('biz_center_members') ? 'biz_center_members' : 'unknown'; }
 function decodeJwtPayload(value){
@@ -108,6 +108,7 @@ exports.handler=async(event)=>{
     }
     if(body.operation!=='setup') return {statusCode:400,headers:CORS,body:JSON.stringify({error:'unsupported operation'})};
     await cleanup();
+    SESSIONS = makeSessions();
     for(const key of keys) await member(key);
     await session('c','SR-C');
     await session('da','SR-DA');
