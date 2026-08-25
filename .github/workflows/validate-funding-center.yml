@@ -6,6 +6,7 @@ on:
       - agent/abfop-nebc-funding-center
       - agent/abfop-funding-intelligence
       - agent/nebc-funding-integration
+      - remediation/morgan-session-restoration-v1
     paths:
       - '.github/workflows/validate-funding-center.yml'
       - 'netlify/functions/_funding-match.js'
@@ -18,8 +19,12 @@ on:
       - 'tests/funding-match.test.js'
       - 'tests/funding-api.test.js'
       - 'tests/funding-integration.test.js'
+      - 'tests/session-restoration.test.js'
       - 'assessment.html'
       - 'business-funding.html'
+      - 'coach.html'
+      - 'morgans-office.html'
+      - 'morgan-session.js'
   pull_request:
     branches:
       - main
@@ -35,8 +40,12 @@ on:
       - 'tests/funding-match.test.js'
       - 'tests/funding-api.test.js'
       - 'tests/funding-integration.test.js'
+      - 'tests/session-restoration.test.js'
       - 'assessment.html'
       - 'business-funding.html'
+      - 'coach.html'
+      - 'morgans-office.html'
+      - 'morgan-session.js'
   workflow_dispatch:
 
 permissions:
@@ -45,7 +54,7 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -53,6 +62,8 @@ jobs:
           node-version: '20'
       - name: Run funding center tests
         run: node --test tests/funding-match.test.js tests/funding-api.test.js tests/funding-integration.test.js
+      - name: Run Morgan session restoration tests
+        run: node --test tests/session-restoration.test.js
       - name: Verify function can load embedded catalog
         run: |
           node - <<'NODE'
