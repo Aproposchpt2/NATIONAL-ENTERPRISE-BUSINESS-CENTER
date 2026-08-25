@@ -3,10 +3,10 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-const TARGET = 'https://deploy-preview-40--nat-enterprise-business-center.netlify.app';
+const TARGET = 'https://nebc.aproposgroupllc.com';
 const FIXTURE = 'https://deploy-preview-40--nat-enterprise-business-center.netlify.app/.netlify/functions/session-restoration-test-fixture';
 const EXPECTED_CLOSE = 'Do you have any further questions for me?';
-const IMPL_COMMIT = 'bd3a09e2676d3fe628c4e11e9f9971195b19ecf4';
+const EXPECTED_PRODUCTION_COMMIT = 'b48494ea3bf360f710c4eb6174f9d72adc6720d8';
 
 async function postUrl(url, body) {
   const r = await fetch(url, { method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify(body) });
@@ -31,7 +31,7 @@ function restoration(body){ return body && body.member && body.member.morganRest
 function countMessage(messages, exact){ return (messages||[]).filter(m=>m.content===exact).length; }
 
 (async()=>{
-  const evidence={target:TARGET,fixture:FIXTURE,implementationCommit:IMPL_COMMIT,startedAt:new Date().toISOString(),scenarios:{},errors:[]};
+  const evidence={target:TARGET,fixture:FIXTURE,expectedProductionCommit:EXPECTED_PRODUCTION_COMMIT,startedAt:new Date().toISOString(),precheck:null,scenarios:{},errors:[]};
   let failed=false;
   try{
     await waitForFixture();
@@ -39,6 +39,17 @@ function countMessage(messages, exact){ return (messages||[]).filter(m=>m.conten
     evidence.fixtureSetup={status:setup.status,ok:setup.data?.ok===true,error:setup.data?.error||null,diagnostic:setup.data?.diagnostic||null};
     if(setup.status!==200||!setup.data?.ok) throw new Error('fixture setup failed');
     const {codes,emails,sessions}=setup.data;
+
+    // LIVE PRODUCTION DATASTORE PRECHECK. A successful OTP verification proves
+    // biz_center_members access. restoration.status === 'none' proves the subsequent
+    // morgan_sessions query also completed rather than failing closed as 'unavailable'.
+    const pre=await post('member-otp-verify',{email:emails.f,code:codes.f});
+    const preRest=restoration(pre.data);
+    const prePass=pre.status===200&&pre.data?.ok===true&&preRest?.status==='none';
+    evidence.precheck={pass:prePass,httpStatus:pre.status,memberAuthorized:pre.status===200&&pre.data?.ok===true,morganSessionsAuthorized:preRest?.status==='none',restoreStatus:preRest?.status||null,http401:pre.status===401,http403:pre.status===403};
+    if(!prePass) throw new Error('production Supabase precheck failed');
+    const refreshF=await postUrl(FIXTURE,{operation:'refresh',key:'f'});
+    if(refreshF.status!==200||!refreshF.data?.ok) throw new Error('fixture refresh for SR-F failed');
 
     const abUser='SR-AB first-session marker';
     const abSave=await post('assistant',{messages:[{role:'user',content:abUser}],stage:1,sessionId:sessions.ab,userEmail:emails.ab,firstName:'SR',context:'Synthetic SR-A/B validation. Business: SR AB Test Co. State: NV.'});
@@ -88,7 +99,7 @@ function countMessage(messages, exact){ return (messages||[]).filter(m=>m.conten
   }
   evidence.completedAt=new Date().toISOString();
   fs.mkdirSync(path.join(process.cwd(),'validation-artifacts'),{recursive:true});
-  fs.writeFileSync(path.join(process.cwd(),'validation-artifacts','session-restoration-runtime-final.json'),JSON.stringify(evidence,null,2));
+  fs.writeFileSync(path.join(process.cwd(),'validation-artifacts','session-restoration-live-development.json'),JSON.stringify(evidence,null,2));
   console.log(JSON.stringify(evidence,null,2));
   if(failed) process.exitCode=1;
 })();
