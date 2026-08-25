@@ -1,0 +1,34 @@
+name: Morgan Session Restoration Runtime Acceptance
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+    branches:
+      - main
+    paths:
+      - '.github/workflows/session-restoration-runtime-final.yml'
+      - 'validation/session-restoration-runtime-final.js'
+      - 'netlify/functions/session-restoration-test-fixture.js'
+
+permissions:
+  contents: read
+
+jobs:
+  runtime-acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Execute SR-A through SR-F against implementation Preview 39
+        run: node validation/session-restoration-runtime-final.js
+      - name: Upload runtime acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nebc-morgan-session-restoration-runtime-acceptance
+          path: validation-artifacts/session-restoration-runtime-final.json
+          if-no-files-found: error
+          retention-days: 30
