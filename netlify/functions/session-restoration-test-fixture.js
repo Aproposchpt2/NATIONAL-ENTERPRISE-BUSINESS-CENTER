@@ -23,10 +23,11 @@ const SESSIONS = {
 const keys = Object.keys(EMAILS);
 
 function headers(){ return { apikey:SKEY, Authorization:`Bearer ${SKEY}`, 'Content-Type':'application/json' }; }
+function tableLabel(path){ return String(path).startsWith('morgan_sessions') ? 'morgan_sessions' : String(path).startsWith('biz_center_members') ? 'biz_center_members' : 'unknown'; }
 async function req(path, opts={}){
   const r = await fetch(`${SUPA.replace(/\/$/,'')}/rest/v1/${path}`, { ...opts, headers:{...headers(), ...(opts.headers||{})} });
   const text = await r.text();
-  if(!r.ok) throw new Error(`fixture datastore error ${r.status}`);
+  if(!r.ok) throw new Error(`${tableLabel(path)}:${r.status}`);
   return text ? JSON.parse(text) : null;
 }
 async function cleanup(){
@@ -41,7 +42,7 @@ async function member(key){
   await req('biz_center_members',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify(row)});
 }
 async function refresh(key){
-  if(!keys.includes(key)) throw new Error('unknown fixture key');
+  if(!keys.includes(key)) throw new Error('fixture_key:400');
   await req(`biz_center_members?email=eq.${encodeURIComponent(EMAILS[key])}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({login_code:CODES[key],login_code_expires:new Date(Date.now()+60*60*1000).toISOString()})});
 }
 async function session(key, marker){
@@ -66,12 +67,11 @@ exports.handler=async(event)=>{
     if(body.operation!=='setup') return {statusCode:400,headers:CORS,body:JSON.stringify({error:'unsupported operation'})};
     await cleanup();
     for(const key of keys) await member(key);
-    // AB intentionally starts without a session so SR-A proves persistence through assistant.js.
     await session('c','SR-C');
     await session('da','SR-DA');
     await session('e','SR-E');
     return {statusCode:200,headers:CORS,body:JSON.stringify({ok:true,operation:'setup',codes:CODES,emails:EMAILS,sessions:SESSIONS})};
-  }catch(_){
-    return {statusCode:500,headers:CORS,body:JSON.stringify({error:'fixture operation failed'})};
+  }catch(e){
+    return {statusCode:500,headers:CORS,body:JSON.stringify({error:'fixture operation failed',diagnostic:String(e&&e.message||'unknown')})};
   }
 };
