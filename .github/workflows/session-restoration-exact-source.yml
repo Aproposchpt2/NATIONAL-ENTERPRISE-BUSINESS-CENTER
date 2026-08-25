@@ -1,0 +1,34 @@
+name: Morgan Session Restoration Exact Source Validation
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+    branches:
+      - main
+    paths:
+      - '.github/workflows/session-restoration-exact-source.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  exact-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact implementation branch
+        uses: actions/checkout@v4
+        with:
+          ref: remediation/morgan-session-restoration-v1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Verify implementation SHA
+        run: |
+          ACTUAL="$(git rev-parse HEAD)"
+          echo "implementation_sha=$ACTUAL"
+          test "$ACTUAL" = "bd3a09e2676d3fe628c4e11e9f9971195b19ecf4"
+      - name: Run accepted Funding baseline
+        run: node --test tests/funding-match.test.js tests/funding-api.test.js tests/funding-integration.test.js
+      - name: Run Morgan session restoration suite
+        run: node --test tests/session-restoration.test.js
