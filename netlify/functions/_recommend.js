@@ -6,7 +6,7 @@ const SERVICE_LIBRARY = {
   documents: { label: 'Business Documents', icon: '📑', href: '/documents.html', blurb: 'Generate practical business and funding-preparation documents.' },
   website: { label: 'Website Design Advisory', icon: '🌐', href: '/website-builder.html', blurb: 'Plan and build a professional customer-facing web presence.' },
   marketing: { label: 'Marketing Advisory', icon: '📣', href: '#assistant', blurb: 'Use Morgan’s Office for marketing-readiness guidance and next-step planning.' },
-  federal_contracts: { label: 'Federal Contract Opportunities', icon: '🏛', href: 'https://rfcp.aproposgroupllc.com', blurb: 'Federal opportunity intelligence through the Registered Federal Contractors Portal.' },
+  federal_contracts: { label: 'Federal Contract Opportunities', icon: '🏛', href: 'https://federalcontractorportal.aproposgroupllc.com', blurb: 'Federal opportunity intelligence through the Registered Federal Contractors Portal.' },
   state_contracts: { label: 'State & Local Contract Opportunities', icon: '🏙', href: 'https://natcorp.aproposgroupllc.com', blurb: 'State and local opportunity intelligence through the National Corporate Contract Exchange.' },
   funding: { label: 'Business Funding Opportunity Center', icon: '💵', href: '/business-funding.html', blurb: 'Identify relevant controlled business-funding sources and review fit evidence, unresolved qualification questions, and next actions.' },
   proposal: { label: 'Proposal Readiness Guidance', icon: '📝', href: '#assistant', blurb: 'Use Morgan’s Office to review proposal readiness and determine the appropriate contract-response path.' },
