@@ -23,6 +23,10 @@ Both are marked in-code as a known, deliberate gap ("Accepted as-is for now per 
 
 Recommendation: keep this as a conscious call, but it's worth re-deciding now that a real path to member session tokens already exists (the OTP flow just got fixed and verified) — gating these two behind that session would be a small, high-leverage change. At minimum, add basic rate limiting to both before any marketing push increases traffic to the site.
 
+**Update (2026-09-02) — re-checked before building anything:** there is currently no session token at all to gate against. `member-otp-verify.js` returns the member's profile as a plain JSON blob on success — no signed token, no cookie, no server-tracked session id. Real per-member auth means building that first, not a one-line check. Also found the actual current exposure is asymmetric: `member-upload.js` isn't called from any page in the live site, and its `member-documents` bucket has never been created (checked Supabase Storage directly) — zero real data at risk today. `website-generate.js` is genuinely live (6 real builds in `website-builds`, a public-by-design bucket, so no privacy angle there — just cost exposure from the unauthenticated paid Claude call).
+
+Given that, added **basic rate limiting to both** as a stopgap (commit `6eadbd9`): a small Postgres-backed fixed-window limiter (`nebc_check_rate_limit()` + `nebc_rate_limits` table, service-role only) rather than an in-memory counter, since Netlify Functions don't hold in-memory state across cold starts. `website-generate` capped at 5 req/10min/IP, `member-upload` at 20 req/min/IP. Verified live in production (25 rapid requests → first 20 through, rest `429`). Real session-token auth is still open and still a real scoped design decision, not done here.
+
 ### 2. MEDIUM — Funding catalog has real state-coverage gaps behind the (correctly-disclosed) out-of-state matching
 
 Verified directly against the embedded catalog: **0 of 152 microloan records are NV-based** (549 records total). For any Nevada business requesting a microloan, the engine is structurally unable to return an in-state match — it's not a scoring bug, there's simply no NV row to score. The UI handles this honestly today, but the fix is data, not code: broaden the catalog's per-state density for the more commonly requested capital types.
@@ -31,9 +35,15 @@ Verified directly against the embedded catalog: **0 of 152 microloan records are
 
 Open draft PR **#42, "Funding: authoritative SBA source URLs for all 549 catalog records"** (`agent/funding-authoritative-urls`, opened today 2026-09-01) appears to be automated work-in-progress addressing empty `source_url` fields in the funding catalog — the same gap surfaced independently by my live test data. Its last 4 CI pushes on `Validate NEBC funding center` all show `failure` (most recent at 13:57:42Z). Worth a look before it's forgotten — either finish it or close it; a stalled red branch with the same intent as a real gap is easy to lose track of.
 
-### 4. LOW — PR/branch hygiene
+### 4. RESOLVED — PR/branch hygiene (2026-09-02)
 
-15 open PRs on the repo, 13 of them `DRAFT` and dated from automated validation runs on or before 2026-08-25 (e.g. `validation/morgan-funding-*`, `validation/morgan-session-restoration-*`) that all appear to be one-off evidence-capture branches from already-accepted work — safe to close in bulk. Separately, **PR #1, "SEO Phase 1 — Free Membership Positioning & Business Acquisition"**, has been sitting `OPEN` (not draft) since 2026-07-31 — over a month — and may be worth a decision (merge, revive, or close) rather than left ambiguous.
+Closed all 14 open PRs and deleted all 47 stale remote branches (repo now has only `main`). Breakdown:
+- 11 one-off validation-evidence branches from the already-merged/accepted 2026-08-21 Morgan Funding certification pass — closed, no unique content.
+- **PR #42** (funding source-URL remediation, opened 2026-09-01) — closed; its last 4 CI runs failed on stale/unrelated regression assertions (`SR-08`/`SR-10`, checking `assistant.js` content, not the actual funding-catalog diff), inactive for hours. **The underlying gap is still real** — 0/152 microloan records have a source_url (same finding as item 2 below) — worth a fresh attempt, not a resurrection of this branch.
+- **PR #2** ("NEBC homepage SEO...", opened 2026-08-05) — closed as superseded. Its core fix (pointing `day12-trial-email.js`'s `SITE` constant at `nebc.aproposgroupllc.com` instead of the old `aibizcenter.aproposgroupllc.com`) had already landed on main independently. This is a second, independent confirmation that `aibizcenter.aproposgroupllc.com` really was this repo's own earlier domain reference — consistent with the Stripe webhook finding above.
+- **PR #1** ("SEO Phase 1 — Free Membership Positioning...", opened 2026-07-31) — closed. Had real merge conflicts against current main, and its whole premise (preserving a *free*-membership model) is superseded by the site's current $39/month paid-trial model — not just stale code, a stale strategy.
+- 23 other branches (perf/*, seo/*, message-horse/*, remediation/*, etc.) all had already-merged PRs (#3–#39) — their content is live on main; deleted the leftover branch pointers.
+- 9 remaining branches (`*-base`, `*-preview-base`, `*-production-smoke`, two `fix/message-horse-current-sites*` iterations, `seo-campaign-homepage-staging`) never had a PR at all — confirmed via commit dates/messages they're scaffolding from the same already-finished Aug 2026 work, not independent unmerged features. Deleted.
 
 ### 5. Still worth a live spot-check
 
@@ -86,10 +96,12 @@ Editing the URL on an existing destination doesn't rotate its signing secret, an
 
 Also flagged and not yet resolved: `marketing-stripe-webhook.js` actually governs **Social Autopilot** posting on/off (`social_autopilot_clients` table), not NEBC membership — worth confirming NEBC subscribers are actually meant to be tied to that system before assuming this webhook has real work to do when it fires.
 
-## Suggested priority order
+## Status as of 2026-09-02
 
-1. Fix `day12-trial-email`'s scheduling registration (confirmed not running — see spot-check above) and decide the `aibizcenter.aproposgroupllc.com` vs. this-repo question for the two Stripe webhooks before the first real NEBC subscriber pays.
-2. Revisit the member-upload / website-generate auth decision now that member sessions work end-to-end, and/or add basic rate limiting to both regardless of the auth decision.
-3. Check in on PR #42 (funding source-URL remediation) — finish or close.
-4. Bulk-close the 13 stale draft validation PRs; decide on PR #1.
-5. Add NV (and other under-covered states') microloan/funding-source records to the catalog as a content task, not a code task.
+All items below are resolved except real session-token auth and the funding catalog content gaps:
+1. ✅ `day12-trial-email` scheduling — fixed, verified live.
+2. ✅ Stripe webhooks — repointed to `nebc.aproposgroupllc.com`, correctly configured; not yet proven by a real delivery (no subscribers yet).
+3. ✅ Basic rate limiting added to `website-generate` and `member-upload`.
+4. ✅ PR/branch hygiene — all 14 PRs closed, all 47 stale branches deleted.
+5. **Still open:** real per-member session-token auth (no session mechanism exists yet — see the auth section above for what that would take).
+6. **Still open:** funding catalog content gaps — 0/152 NV microloan records, 0/152 microloan records anywhere have a `source_url`. Data/content task, not code.
