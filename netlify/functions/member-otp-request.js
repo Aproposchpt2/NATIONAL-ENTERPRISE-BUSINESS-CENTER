@@ -1,4 +1,5 @@
 'use strict';
+// redeploy-trigger: pick up corrected SUPABASE_URL env var
 // cache-bust: force fresh function bundle to pick up current SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY env vars
 const crypto=require('crypto');
 const SUPABASE_URL=process.env.SUPABASE_URL,SKEY=process.env.SUPABASE_SERVICE_ROLE_KEY||process.env.SUPABASE_SERVICE_KEY||'',RESEND_KEY=process.env.RESEND_API_KEY,RESEND_FROM=process.env.RESEND_FROM_EMAIL;
