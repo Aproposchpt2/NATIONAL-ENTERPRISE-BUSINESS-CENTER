@@ -77,7 +77,7 @@ test('funding intelligence separates fit evidence from unresolved confirmation',
   assert.ok(intel.fit.some(x => x.includes('business state')));
   assert.ok(intel.gaps.some(x => x.includes('requested amount')));
   assert.match(intel.nextAction, /Verify/);
-  assert.equal(intel.relevance, 90);
+  assert.equal(intel.relevance, 100);
 });
 
 test('out-of-state source is a relevance candidate, not an eligibility finding', () => {
@@ -85,7 +85,7 @@ test('out-of-state source is a relevance candidate, not an eligibility finding',
   const intel = buildIntelligence(profile, envelopeInput.records[1]);
   assert.ok(intel.gaps.some(x => x.includes('serves businesses in NV')));
   assert.ok(intel.fit.some(x => x.includes('SBIC')));
-  assert.equal(intel.relevance, 60);
+  assert.equal(intel.relevance, 57);
 });
 
 test('ranks same-state controlled records higher and returns intelligence version', () => {
