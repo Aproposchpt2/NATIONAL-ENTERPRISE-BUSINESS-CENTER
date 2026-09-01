@@ -54,8 +54,14 @@ async function sendNudge(m) {
   }
 }
 
-export const handler = async () => {
-  if (!SUPABASE_URL || !SKEY) return { statusCode: 200, body: 'supabase not configured' };
+// export default + export const config is the Netlify Functions v2 signature required for
+// scheduled (cron) registration to actually take effect — matches the working pattern in
+// autopilot-run.js and message-horse.js. The previous `export const handler = async () => {}`
+// (v1/classic signature) silently failed to register as a scheduled function: Netlify showed
+// no "Scheduled" badge and the function never ran on its own (confirmed via 7 days of empty
+// logs), so real trial-ending members were never getting the day-12 nudge email.
+export default async () => {
+  if (!SUPABASE_URL || !SKEY) return new Response('supabase not configured', { status: 200 });
   let sent = 0;
   let found = 0;
   try {
@@ -65,9 +71,9 @@ export const handler = async () => {
       if (await sendNudge(m)) sent++;
     }
   } catch (e) {
-    return { statusCode: 200, body: 'error: ' + String(e.message || e) };
+    return new Response('error: ' + String(e.message || e), { status: 200 });
   }
-  return { statusCode: 200, body: `day12 nudge: ${sent}/${found} sent` };
+  return new Response(`day12 nudge: ${sent}/${found} sent`, { status: 200 });
 };
 
 export const config = { schedule: '0 16 * * *' }; // daily, approximately 9 a.m. Pacific
