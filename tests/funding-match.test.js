@@ -11,7 +11,9 @@ const {
   rankMatches,
   SOURCE_SNAPSHOT_SHA256,
   CATALOG_PROJECTION_SHA256,
-  CATALOG_RECORD_COUNT
+  CATALOG_RECORD_COUNT,
+  AUTHORITATIVE_SOURCE_URLS,
+  AUTHORITATIVE_SOURCE_VERIFIED_AT
 } = require('../netlify/functions/_funding-match');
 
 const profileInput = { state: 'nv', amount: 50000, use: 'equipment', capital: 'open', revenue: 250000, employees: 3 };
@@ -46,6 +48,27 @@ test('loads the embedded catalog only when count and projection hash match', () 
   assert.equal(CATALOG_RECORD_COUNT, 549);
   assert.equal(envelope.snapshot_sha256, CATALOG_PROJECTION_SHA256);
   assert.equal(SOURCE_SNAPSHOT_SHA256, '86e86b9c6b1d29bdeff5d5f06b00294acbd1a2116ac448981d6bdf1f0ff89293');
+});
+
+test('all embedded funding records receive a verified authoritative SBA source URL', () => {
+  const envelope = loadEmbeddedEnvelope();
+  assert.equal(AUTHORITATIVE_SOURCE_VERIFIED_AT, '2026-09-01');
+  assert.equal(envelope.records.length, 549);
+  for (const record of envelope.records) {
+    assert.equal(record.source_url, AUTHORITATIVE_SOURCE_URLS[record.program]);
+    assert.match(record.source_url, /^https:\/\/www\.sba\.gov\//i);
+    assert.equal(record.source_url_status, 'VERIFIED_AUTHORITATIVE_DIRECTORY');
+    assert.equal(record.source_url_authority, 'U.S. Small Business Administration');
+    assert.equal(record.source_url_verified_at, '2026-09-01');
+  }
+});
+
+test('catalog enrichment does not manufacture provider-owned URLs', () => {
+  const envelope = validateSourceEnvelope(envelopeInput);
+  assert.equal(envelope.records[0].provider_url, '');
+  assert.equal(envelope.records[1].provider_url, '');
+  assert.equal(envelope.records[0].source_url, AUTHORITATIVE_SOURCE_URLS.microloan);
+  assert.equal(envelope.records[1].source_url, AUTHORITATIVE_SOURCE_URLS.sbic);
 });
 
 test('funding intelligence separates fit evidence from unresolved confirmation', () => {
