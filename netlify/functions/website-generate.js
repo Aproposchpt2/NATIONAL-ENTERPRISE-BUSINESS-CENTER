@@ -6,6 +6,10 @@
 // TODO: gate behind member session before production hardening.
 // This endpoint is currently unauthenticated (matching the rest of the app's functions).
 // (Accepted as-is for now per directive; auth is a separate security directive.)
+// Basic rate limiting added 2026-09-02 as a stopgap against unauthenticated cost abuse
+// of the paid Claude call below -- see _rate-limit.js. Not a substitute for real auth.
+
+const { checkRateLimit } = require('./_rate-limit');
 
 const MODEL = process.env.WEBSITE_MODEL || 'claude-sonnet-4-6';
 const SUPA  = process.env.SUPABASE_URL;
@@ -78,6 +82,9 @@ exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') return json({ error: 'POST only' }, 405);
   if (!SUPA || !SKEY) return json({ error: 'SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY not set' }, 500);
   if (!process.env.ANTHROPIC_API_KEY) return json({ error: 'ANTHROPIC_API_KEY not set' }, 500);
+
+  const allowed = await checkRateLimit({ supabaseUrl: SUPA, serviceKey: SKEY, event, bucket: 'website-generate', limit: 5, windowSeconds: 600 });
+  if (!allowed) return json({ error: 'Too many requests. Please wait a few minutes and try again.' }, 429);
 
   let d; try { d = JSON.parse(event.body || '{}'); } catch { return json({ error: 'Bad JSON' }, 400); }
   const session_id = String(d.session_id || '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 64) || ('site-' + Date.now());

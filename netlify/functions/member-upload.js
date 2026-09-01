@@ -9,6 +9,10 @@
 // of the app's functions), so callers could touch any {user_email}/ path. Before production
 // hardening, gate them behind the member OTP session. (Accepted as-is for now per directive;
 // auth is a separate security directive.)
+// Basic rate limiting added 2026-09-02 as a stopgap against scripted path enumeration/abuse
+// -- see _rate-limit.js. Not a substitute for real auth.
+
+const { checkRateLimit } = require('./_rate-limit');
 
 const SUPA = process.env.SUPABASE_URL;
 const SKEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -27,6 +31,9 @@ exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return json({}, 204);
   if (event.httpMethod !== 'POST') return json({ error: 'POST only' }, 405);
   if (!SUPA || !SKEY) return json({ error: 'Supabase not configured' }, 500);
+
+  const allowed = await checkRateLimit({ supabaseUrl: SUPA, serviceKey: SKEY, event, bucket: 'member-upload', limit: 20, windowSeconds: 60 });
+  if (!allowed) return json({ error: 'Too many requests. Please slow down and try again shortly.' }, 429);
 
   let b; try { b = JSON.parse(event.body || '{}'); } catch { return json({ error: 'Bad JSON' }, 400); }
   const bucket = String(b.bucket || '');
