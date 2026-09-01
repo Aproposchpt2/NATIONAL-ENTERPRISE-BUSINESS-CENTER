@@ -74,6 +74,18 @@ Separately, since no event has ever been delivered to either destination, there'
 
 **Attempted to resolve this directly, hit a dead end:** `aibizcenter.aproposgroupllc.com`'s root page returns a different title ("NEBC Homepage Flow Preview — Protected Sandbox") than `nebc.aproposgroupllc.com`'s real homepage, and this repo has no host-based redirect rule that would explain the difference — so it's very likely a separate Netlify project, not just a second domain on the site I've been fixing today. Searched Netlify for a project named "aibizcenter" or "bizplan" — no match either way, so I couldn't get into its env vars to check `SUPABASE_URL` directly. This needs the actual Netlify project name/slug to go further — flagging rather than guessing at it.
 
+### RESOLVED — both destinations repointed to `nebc.aproposgroupllc.com` (2026-09-01)
+
+You edited both existing Stripe destinations in place rather than creating new ones:
+- `we_1Tli2jBMRgYNYb8DYnHWRzD2` ("NEBC SUBSCRIPTION STRIPE WEBHOOK") → `https://nebc.aproposgroupllc.com/.netlify/functions/stripe-webhook`
+- `we_1TkyncBMRgYNYb8DVKbhvcGP` ("NEBC_MARKETING_WEBHOOK") → `https://nebc.aproposgroupllc.com/.netlify/functions/marketing-stripe-webhook`
+
+Editing the URL on an existing destination doesn't rotate its signing secret, and `nat-enterprise-business-center`'s Netlify env already had the matching `STRIPE_WEBHOOK_KEY` / `MARKETING_STRIPE_WEBHOOK_SECRET` / `STRIPE_SECRET_KEY` provisioned since 2026-07-03 — so no env var changes were needed. Confirmed both endpoints are live at the new URL and correctly reject an unsigned request (proper signature check running). No env var changes made.
+
+**Not yet proven by an actual delivery** — both destinations still show zero deliveries all-time, and there are no real NEBC subscribers yet to generate one, so there's nothing to test against right now. This will self-verify the first time a real checkout completes: check Event deliveries on both destinations for a `200` at that point. If it ever shows a failure instead, start with `verifySig` in `stripe-webhook.js`/`marketing-stripe-webhook.js` — that's the only thing that could still be wrong given everything else checks out.
+
+Also flagged and not yet resolved: `marketing-stripe-webhook.js` actually governs **Social Autopilot** posting on/off (`social_autopilot_clients` table), not NEBC membership — worth confirming NEBC subscribers are actually meant to be tied to that system before assuming this webhook has real work to do when it fires.
+
 ## Suggested priority order
 
 1. Fix `day12-trial-email`'s scheduling registration (confirmed not running — see spot-check above) and decide the `aibizcenter.aproposgroupllc.com` vs. this-repo question for the two Stripe webhooks before the first real NEBC subscriber pays.
