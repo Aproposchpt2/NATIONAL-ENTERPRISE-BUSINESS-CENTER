@@ -43,6 +43,10 @@ Open draft PR **#42, "Funding: authoritative SBA source URLs for all 549 catalog
 
 Requested follow-up: check `day12-trial-email` and the Stripe webhooks live rather than just flagging them as "worth checking."
 
+### `day12-trial-email` — FIXED (commit `0d62ce1`, verified live)
+
+Root cause found: the file used the v1/classic `export const handler = async () => {}` signature combined with a v2-only `export const config = { schedule }` export — Netlify silently ignored the schedule on that signature. Converted to the same `export default async () => {}` + `Response` pattern already working in `autopilot-run.js` and `message-horse.js`. Redeployed and confirmed live in the Netlify Functions dashboard: it now shows a green **"Scheduled"** badge with "Next execution on Sep 2 at 9:00 AM," matching the working functions exactly. Original finding below, kept for the record.
+
 ### `day12-trial-email` — confirmed broken, unrelated to the SUPABASE_URL fix
 
 This is a **new, real finding**, not a confirmation of the earlier one. In the Netlify Functions dashboard:
@@ -67,6 +71,8 @@ What this means: **the `stripe-webhook.js` / `marketing-stripe-webhook.js` files
 Separately, since no event has ever been delivered to either destination, there's no history to confirm whether that real handler is even healthy — it's simply never been exercised by a live transaction yet.
 
 **Recommendation:** decide whether `aibizcenter.aproposgroupllc.com` is the permanent, intended home for NEBC's Stripe logic (in which case the copies in this repo are dead code worth deleting to stop the two from silently drifting apart) or whether NEBC is supposed to have migrated to its own webhook and that migration just never happened (in which case a Stripe destination pointing at `nebc.aproposgroupllc.com` needs to be created). Either way, worth checking `aibizcenter.aproposgroupllc.com`'s own `SUPABASE_URL` config directly before the first real NEBC subscriber goes through checkout.
+
+**Attempted to resolve this directly, hit a dead end:** `aibizcenter.aproposgroupllc.com`'s root page returns a different title ("NEBC Homepage Flow Preview — Protected Sandbox") than `nebc.aproposgroupllc.com`'s real homepage, and this repo has no host-based redirect rule that would explain the difference — so it's very likely a separate Netlify project, not just a second domain on the site I've been fixing today. Searched Netlify for a project named "aibizcenter" or "bizplan" — no match either way, so I couldn't get into its env vars to check `SUPABASE_URL` directly. This needs the actual Netlify project name/slug to go further — flagging rather than guessing at it.
 
 ## Suggested priority order
 
