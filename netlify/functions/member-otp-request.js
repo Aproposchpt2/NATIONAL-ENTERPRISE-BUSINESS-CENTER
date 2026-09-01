@@ -1,4 +1,5 @@
 'use strict';
+// cache-bust: force fresh function bundle to pick up current SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY env vars
 const crypto=require('crypto');
 const SUPABASE_URL=process.env.SUPABASE_URL,SKEY=process.env.SUPABASE_SERVICE_ROLE_KEY||process.env.SUPABASE_SERVICE_KEY||'',RESEND_KEY=process.env.RESEND_API_KEY,RESEND_FROM=process.env.RESEND_FROM_EMAIL;
 const CORS={'Content-Type':'application/json','Access-Control-Allow-Origin':'*','Access-Control-Allow-Methods':'POST, OPTIONS','Access-Control-Allow-Headers':'Content-Type'};const j=(c,o)=>({statusCode:c,headers:CORS,body:JSON.stringify(o)});const sbH=()=>({apikey:SKEY,Authorization:`Bearer ${SKEY}`,'Content-Type':'application/json'});

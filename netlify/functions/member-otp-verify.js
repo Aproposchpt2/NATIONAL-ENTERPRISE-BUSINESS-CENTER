@@ -1,4 +1,5 @@
 'use strict';
+// cache-bust: force fresh function bundle to pick up current SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY env vars
 // Business Center — member login: verify a sign-in code and return the saved profile so
 // the front-end can reload the dashboard / prime the AI advisor with the member's context.
 // Successful OTP verification is also the authenticated authority for Morgan session restore.
