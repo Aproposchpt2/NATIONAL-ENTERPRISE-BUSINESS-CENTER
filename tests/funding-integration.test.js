@@ -33,18 +33,19 @@ test('returning-member recommendation reconstruction is deterministic', () => {
 
 test('Morgan funding action resolves to the controlled Funding Center', () => {
   const source = read('netlify/functions/assistant.js');
-  assert.match(source, /funding:\s*\{ label: 'Business Funding Opportunity Center →', href: '\/business-funding\.html'/);
+  assert.match(source, /funding:\s*\{\s*label:\s*'Business Funding Opportunity Center →',\s*href:\s*'\/business-funding\.html'/);
   assert.match(source, /\[\[OPEN: funding\]\]/);
-  assert.match(source, /Do not search the controlled funding catalog conversationally/);
+  assert.match(source, /If source identification is requested, explain readiness first then use \[\[OPEN: funding\]\]/);
   assert.match(source, /OPENAI_API_KEY/);
 });
 
 test('assessment result carries known funding profile context and makes funding immediate', () => {
   const source = read('netlify/functions/generate-plan.js');
-  assert.match(source, /'website', 'funding', 'federal_contracts'/);
-  assert.match(source, /email: i\.email,/);
-  assert.match(source, /state: i\.state,/);
-  assert.match(source, /servicesNeeded: i\.servicesNeeded,/);
+  assert.match(source, /const immediate=\[[^\]]*'funding'[^\]]*\]/);
+  assert.match(source, /const immediate=\[[^\]]*'federal_contracts'[^\]]*\]/);
+  assert.match(source, /email:\s*i\.email,/);
+  assert.match(source, /state:\s*i\.state,/);
+  assert.match(source, /servicesNeeded:\s*i\.servicesNeeded,/);
 });
 
 test('Funding Center uses server API and member profile reuse', () => {
@@ -52,7 +53,7 @@ test('Funding Center uses server API and member profile reuse', () => {
   assert.match(html, /Store\.get\('abc_profile'\)/);
   assert.match(html, /Store\.get\('abc_member'\)/);
   assert.match(html, /fetch\('\/\.netlify\/functions\/funding-match'/);
-  assert.match(html, /Funding analysis unavailable\./);
+  assert.match(html, /Funding analysis is temporarily unavailable\./);
   assert.match(html, /Why this deserves review/);
   assert.match(html, /What still needs confirmation/);
   assert.match(html, /Recommended next action/);
